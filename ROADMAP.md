@@ -35,13 +35,18 @@ Funcionalidades completadas y en producción:
   - Mantener botones de importación/subida en ubicaciones actuales
   - Asegurar que toda la funcionalidad existente se mantenga
   - Implementar navegación por pestañas sin recarga de página
+  - Implementar carga de datos mediante AJAX para evitar sobrecarga del HTML
+  - Consultar detalles/información adicional vía AJAX cuando sea necesario
   - Adaptar estilos para consistencia visual
 - **Criterios de Aceptación**:
   - Interfaz unificada con pestañas de Bootstrap funcionando
   - Todas las funcionalidades existentes de PPR, CEPLAN y Cartera disponibles
-  - Navegación entre pestañas fluida y sin recarga
+  - Navegación entre pestañas fluida sin recarga de página principal
+  - Uso eficiente de AJAX para carga de datos detallados
+  - HTML no sobrecargado con grandes volúmenes de datos
   - Mantenimiento de la funcionalidad de carga de archivos
   - Experiencia de usuario mejorada sin pérdida de funcionalidad
+  - Mejora en el rendimiento de la interfaz
 
 ### Versión 1.2 - Comparación y Reportes (Próximos 2-4 semanas)
 **Objetivo**: Implementar funcionalidad de comparación PPR vs CEPLAN y dashboards básicos
