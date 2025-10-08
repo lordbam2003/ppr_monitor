@@ -51,9 +51,17 @@ monitor_ppr.db
 ehthumbs.db
 Thumbs.db
 
-# Logs
+# Directories to exclude
 logs/
-*.log
+test_archivos/
+extractor_test/
+
+# Files to exclude
+ANALYSIS_REPORTE.md
+detalle tablas.txt
+status
+todo_list.txt
+prompt.txt
 
 # Uploads and temp files
 uploads/
@@ -62,9 +70,7 @@ temp_uploads/
 temp_downloads/
 
 # Test files that might contain sensitive data
-test_archivos/
 archivos_test/
-extractor_test/
 
 # Migration files backup (only if needed to exclude)
 # alembic/versions/*.bak
