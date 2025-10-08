@@ -59,8 +59,11 @@
                 <button class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#uploadCeplanModal">
                     <i class="fas fa-file-invoice me-1"></i>Subir CEPLAN
                 </button>
-                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#uploadCarteraModal">
+                <button class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#uploadCarteraModal">
                     <i class="fas fa-folder-open me-1"></i>Subir Cartera
+                </button>
+                <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#createPprFromCarteraModal">
+                    <i class="fas fa-bolt me-1"></i>Crear PPR desde Cartera
                 </button>
             </div>
         </div>
@@ -311,6 +314,37 @@
             </div>
         </div>
     </div>
+    
+    <!-- Create PPR from Cartera Modal -->
+    <div class="modal fade" id="createPprFromCarteraModal" tabindex="-1" aria-labelledby="createPprFromCarteraModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createPprFromCarteraModalLabel">Crear PPR desde Cartera de Servicios</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createPprFromCarteraForm">
+                        <div class="mb-3">
+                            <label for="anioPpr" class="form-label">Año del PPR</label>
+                            <input type="number" class="form-control" id="anioPpr" min="1900" max="2100" required>
+                            <div class="form-text">Seleccione el año para el cual desea crear el PPR</div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Esta operación creará estructuras de PPR, productos, actividades y subproductos 
+                            basados en los registros de Cartera de Servicios existentes. 
+                            Los valores de programación y ejecución se inicializarán en cero.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="createPprFromCarteraBtn">Crear PPR</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="/static/js/bootstrap.bundle.min.js"></script>
@@ -340,6 +374,7 @@
             document.getElementById('uploadBtn').addEventListener('click', uploadPPRFile);
             document.getElementById('uploadCeplanBtn').addEventListener('click', uploadCeplanFile);
             document.getElementById('uploadCarteraBtn').addEventListener('click', uploadCarteraFile);
+            document.getElementById('createPprFromCarteraBtn').addEventListener('click', createPprFromCartera);
             
             // Add event listeners for the main refresh and upload buttons
             document.getElementById('refreshBtn').addEventListener('click', function() {
@@ -696,6 +731,38 @@
                 }
             } catch (error) {
                 console.error('Error uploading Cartera file:', error);
+                hideLoading();
+            }
+        }
+        
+        async function createPprFromCartera() {
+            const anioInput = document.getElementById('anioPpr');
+            const anio = parseInt(anioInput.value);
+            
+            if (!anio || anio < 1900 || anio > 2100) {
+                showError('Por favor ingrese un año válido (entre 1900 y 2100)');
+                return;
+            }
+
+            try {
+                showLoading('Creando PPR desde Cartera de Servicios...');
+                
+                const result = await callAPI(`/pprs/create-from-cartera?anio=${anio}`, 'POST');
+                
+                if (result && result.data) {
+                    showSuccess(result.message);
+                    
+                    document.getElementById('createPprFromCarteraModal').querySelector('.btn-close').click();
+                    document.getElementById('createPprFromCarteraForm').reset();
+                    
+                    // Refresh PPRs after creation
+                    loadPPRs();
+                } else {
+                    showError('No se pudo crear el PPR desde la cartera.');
+                    hideLoading();
+                }
+            } catch (error) {
+                console.error('Error creating PPR from cartera:', error);
                 hideLoading();
             }
         }

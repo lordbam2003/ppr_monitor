@@ -11,6 +11,8 @@ from app.core.security import get_current_active_user
 from app.core.rbac import require_responsable_ppr, require_responsable_planificacion
 from app.models.user import User
 from app.models.ppr import PPR, PPRBase, Producto, Actividad, Subproducto
+from app.models.programacion import ProgramacionPPR, ProgramacionCEPLAN
+from app.models.cartera_servicios import CarteraServicios
 from app.core.database import get_session
 from app.core.logging_config import get_logger
 
@@ -506,4 +508,197 @@ async def get_ppr_estructura(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al obtener la estructura del PPR: {str(e)}"
+        )
+
+
+@router.post("/create-from-cartera", response_class=JSONResponse)
+async def create_ppr_from_cartera(
+    anio: int,
+    current_user: User = Depends(require_responsable_ppr),  # Only Budget Responsible or Admin
+    session: Session = Depends(get_session)
+):
+    """
+    Create PPR structure from existing Cartera de Servicios records
+    """
+    try:
+        logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to create PPR from Cartera records for year {anio}")
+        
+        # Get all cartera records
+        cartera_records = session.exec(select(CarteraServicios)).all()
+        
+        if not cartera_records:
+            logger.warning(f"No Cartera records found for PPR creation by user {current_user.email}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No hay registros de Cartera de Servicios disponibles"
+            )
+        
+        # Group cartera records by program code to create PPRs
+        ppr_data = {}
+        for record in cartera_records:
+            programa_codigo = record.programa_codigo
+            programa_nombre = record.programa_nombre
+            
+            if programa_codigo not in ppr_data:
+                ppr_data[programa_codigo] = {
+                    "nombre": programa_nombre,
+                    "productos": {}
+                }
+            
+            # Ensure producto exists
+            producto_codigo = record.producto_codigo
+            producto_nombre = record.producto_nombre
+            if producto_codigo not in ppr_data[programa_codigo]["productos"]:
+                ppr_data[programa_codigo]["productos"][producto_codigo] = {
+                    "nombre": producto_nombre,
+                    "actividades": {}
+                }
+            
+            # Ensure actividad exists
+            actividad_codigo = record.actividad_codigo
+            actividad_nombre = record.actividad_nombre
+            if actividad_codigo not in ppr_data[programa_codigo]["productos"][producto_codigo]["actividades"]:
+                ppr_data[programa_codigo]["productos"][producto_codigo]["actividades"][actividad_codigo] = {
+                    "nombre": actividad_nombre,
+                    "subproductos": {}
+                }
+            
+            # Add subproducto
+            subproducto_codigo = record.sub_producto_codigo
+            subproducto_nombre = record.sub_producto_nombre
+            unidad_medida = record.unidad_medida
+            if subproducto_codigo not in ppr_data[programa_codigo]["productos"][producto_codigo]["actividades"][actividad_codigo]["subproductos"]:
+                ppr_data[programa_codigo]["productos"][producto_codigo]["actividades"][actividad_codigo]["subproductos"][subproducto_codigo] = {
+                    "nombre": subproducto_nombre,
+                    "unidad_medida": unidad_medida
+                }
+        
+        created_pprs = []
+        total_subproductos = 0
+        
+        # Process each PPR
+        for programa_codigo, ppr_info in ppr_data.items():
+            # Check if PPR already exists for this year and code
+            existing_ppr = session.exec(
+                select(PPR).where(PPR.codigo_ppr == programa_codigo, PPR.anio == anio)
+            ).first()
+            
+            if existing_ppr:
+                logger.warning(f"PPR with code {programa_codigo} already exists for year {anio}, skipping creation")
+                continue
+            
+            # Create new PPR
+            new_ppr = PPR(
+                codigo_ppr=programa_codigo,
+                nombre_ppr=ppr_info["nombre"],
+                anio=anio,
+                estado="activo"
+            )
+            
+            session.add(new_ppr)
+            session.flush()  # Get the ID without committing
+            
+            # Create products for this PPR
+            for producto_codigo, producto_info in ppr_info["productos"].items():
+                new_producto = Producto(
+                    codigo_producto=producto_codigo,
+                    nombre_producto=producto_info["nombre"],
+                    id_ppr=new_ppr.id_ppr
+                )
+                
+                session.add(new_producto)
+                session.flush()  # Get the ID
+                
+                # Create activities for this product
+                for actividad_codigo, actividad_info in producto_info["actividades"].items():
+                    new_actividad = Actividad(
+                        codigo_actividad=actividad_codigo,
+                        nombre_actividad=actividad_info["nombre"],
+                        id_producto=new_producto.id_producto
+                    )
+                    
+                    session.add(new_actividad)
+                    session.flush()  # Get the ID
+                    
+                    # Create subproducts for this activity
+                    for subproducto_codigo, subproducto_info in actividad_info["subproductos"].items():
+                        new_subproducto = Subproducto(
+                            codigo_subproducto=subproducto_codigo,
+                            nombre_subproducto=subproducto_info["nombre"],
+                            unidad_medida=subproducto_info["unidad_medida"],
+                            id_actividad=new_actividad.id_actividad
+                        )
+                        
+                        session.add(new_subproducto)
+                        session.flush()  # Get the ID
+                        
+                        # Create PPR programming with zero values
+                        programacion_ppr = ProgramacionPPR(
+                            id_subproducto=new_subproducto.id_subproducto,
+                            anio=anio,
+                            meta_anual=0.0,
+                            prog_ene=0.0, ejec_ene=0.0,
+                            prog_feb=0.0, ejec_feb=0.0,
+                            prog_mar=0.0, ejec_mar=0.0,
+                            prog_abr=0.0, ejec_abr=0.0,
+                            prog_may=0.0, ejec_may=0.0,
+                            prog_jun=0.0, ejec_jun=0.0,
+                            prog_jul=0.0, ejec_jul=0.0,
+                            prog_ago=0.0, ejec_ago=0.0,
+                            prog_sep=0.0, ejec_sep=0.0,
+                            prog_oct=0.0, ejec_oct=0.0,
+                            prog_nov=0.0, ejec_nov=0.0,
+                            prog_dic=0.0, ejec_dic=0.0
+                        )
+                        
+                        session.add(programacion_ppr)
+                        
+                        # Create CEPLAN programming with zero values
+                        programacion_ceplan = ProgramacionCEPLAN(
+                            id_subproducto=new_subproducto.id_subproducto,
+                            anio=anio,
+                            prog_ene=0.0, ejec_ene=0.0,
+                            prog_feb=0.0, ejec_feb=0.0,
+                            prog_mar=0.0, ejec_mar=0.0,
+                            prog_abr=0.0, ejec_abr=0.0,
+                            prog_may=0.0, ejec_may=0.0,
+                            prog_jun=0.0, ejec_jun=0.0,
+                            prog_jul=0.0, ejec_jul=0.0,
+                            prog_ago=0.0, ejec_ago=0.0,
+                            prog_sep=0.0, ejec_sep=0.0,
+                            prog_oct=0.0, ejec_oct=0.0,
+                            prog_nov=0.0, ejec_nov=0.0,
+                            prog_dic=0.0, ejec_dic=0.0
+                        )
+                        
+                        session.add(programacion_ceplan)
+                        
+                        total_subproductos += 1
+            
+            session.commit()
+            created_pprs.append({
+                "id_ppr": new_ppr.id_ppr,
+                "codigo_ppr": new_ppr.codigo_ppr,
+                "nombre_ppr": new_ppr.nombre_ppr
+            })
+        
+        logger.info(f"Successfully created PPR structures from Cartera data by user {current_user.email}. Created {len(created_pprs)} PPRs with {total_subproductos} subproducts.")
+        
+        return {
+            "data": {
+                "created_pprs": created_pprs,
+                "total_pprs": len(created_pprs),
+                "total_subproductos": total_subproductos
+            },
+            "message": f"Se crearon exitosamente {len(created_pprs)} PPR(s) a partir de los registros de Cartera de Servicios para el año {anio}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating PPR from Cartera data by user {current_user.email}: {str(e)}", exc_info=True)
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear el PPR a partir de Cartera: {str(e)}"
         )
