@@ -20,10 +20,33 @@ Funcionalidades completadas y en producción:
 
 ## Roadmap Detallado
 
-### Versión 1.1 - Comparación y Reportes (Próximos 2-4 semanas)
+### Versión 1.1 - Integración de Datos Transversales (Próximos 1-2 semanas)  
+**Objetivo**: Fusionar la vista de datos transversales con la vista PPR en una interfaz unificada con pestañas de Bootstrap
+
+#### 1. Integración de Vista de Datos Transversales
+- **ID**: FEAT-000
+- **Prioridad**: Muy Alta
+- **Descripción**: Migrar y fusionar la vista de datos transversales a la vista PPR con interfaz de pestañas
+- **Tareas**:
+  - Modificar la vista `/ppr` para incluir pestañas de Bootstrap
+  - 1ra pestaña: Lista de PPRs cargados (actual funcionalidad existente)
+  - 2da pestaña: Datos de CEPLAN cargados (actual funcionalidad de CEPLAN)
+  - 3era pestaña: Cartera de servicios (actual funcionalidad de cartera)
+  - Mantener botones de importación/subida en ubicaciones actuales
+  - Asegurar que toda la funcionalidad existente se mantenga
+  - Implementar navegación por pestañas sin recarga de página
+  - Adaptar estilos para consistencia visual
+- **Criterios de Aceptación**:
+  - Interfaz unificada con pestañas de Bootstrap funcionando
+  - Todas las funcionalidades existentes de PPR, CEPLAN y Cartera disponibles
+  - Navegación entre pestañas fluida y sin recarga
+  - Mantenimiento de la funcionalidad de carga de archivos
+  - Experiencia de usuario mejorada sin pérdida de funcionalidad
+
+### Versión 1.2 - Comparación y Reportes (Próximos 2-4 semanas)
 **Objetivo**: Implementar funcionalidad de comparación PPR vs CEPLAN y dashboards básicos
 
-#### 1. Motor de Comparación PPR ↔ CEPLAN
+#### 2. Motor de Comparación PPR ↔ CEPLAN
 - **ID**: FEAT-001
 - **Prioridad**: Alta
 - **Descripción**: Implementar motor de comparación para cruzar datos entre ambas fuentes
@@ -38,7 +61,7 @@ Funcionalidades completadas y en producción:
   - Generar reporte de diferencias mensuales/anuales
   - Resultados reproducibles y trazables
 
-#### 2. Dashboards y Reportes Básicos
+#### 3. Dashboards y Reportes Básicos
 - **ID**: FEAT-002
 - **Prioridad**: Alta
 - **Descripción**: Desarrollar interfaces gráficas para métricas y comparaciones visuales
@@ -53,7 +76,7 @@ Funcionalidades completadas y en producción:
   - Visualización clara de métricas y KPIs
   - Responsive design
 
-#### 3. Actualizaciones Mensuales
+#### 4. Actualizaciones Mensuales
 - **ID**: FEAT-003
 - **Prioridad**: Alta
 - **Descripción**: Funcionalidad para que responsables actualicen ejecuciones mensuales
@@ -69,10 +92,10 @@ Funcionalidades completadas y en producción:
 
 ---
 
-### Versión 1.2 - Mejoras y Automatización (Próximos 4-8 semanas)
+### Versión 1.3 - Mejoras y Automatización (Próximos 4-8 semanas)
 **Objetivo**: Implementar automatización, notificaciones y herramientas de calidad
 
-#### 4. Sistema de Notificaciones
+#### 5. Sistema de Notificaciones
 - **ID**: FEAT-004
 - **Prioridad**: Media
 - **Descripción**: Alertas automáticas para responsables sobre desviaciones
@@ -84,7 +107,7 @@ Funcionalidades completadas y en producción:
   - Notificaciones configurables
   - Pruebas integradas de notificación completadas
 
-#### 5. Exportación Avanzada de Reportes
+#### 6. Exportación Avanzada de Reportes
 - **ID**: FEAT-005
 - **Prioridad**: Media
 - **Descripción**: Funcionalidad para generar PDFs y reportes detallados
@@ -97,7 +120,7 @@ Funcionalidades completadas y en producción:
   - Formato profesional
   - Opciones de filtro
 
-#### 6. Auditoría Avanzada
+#### 7. Auditoría Avanzada
 - **ID**: FEAT-006
 - **Prioridad**: Media
 - **Descripción**: Histórico completo de cambios y trazabilidad
@@ -112,10 +135,10 @@ Funcionalidades completadas y en producción:
 
 ---
 
-### Versión 1.3 - Optimización y Escalabilidad (Próximos 2-3 meses)
+### Versión 1.4 - Optimización y Escalabilidad (Próximos 2-3 meses)
 **Objetivo**: Implementar optimizaciones técnicas y preparar para producción a gran escala
 
-#### 7. CI/CD Pipeline
+#### 8. CI/CD Pipeline
 - **ID**: FEAT-007
 - **Prioridad**: Baja
 - **Descripción**: Integración continua con GitHub Actions
@@ -128,7 +151,7 @@ Funcionalidades completadas y en producción:
   - PRs bloqueados si fallan tests
   - Despliegue automático
 
-#### 8. Dockerización
+#### 9. Dockerización
 - **ID**: FEAT-008
 - **Prioridad**: Baja
 - **Descripción**: Contenedores para despliegue simplificado
@@ -141,7 +164,7 @@ Funcionalidades completadas y en producción:
   - Configuración de entornos aislados
   - Documentación completa
 
-#### 9. Monitorización y Observabilidad
+#### 10. Monitorización y Observabilidad
 - **ID**: FEAT-009
 - **Prioridad**: Baja
 - **Descripción**: Logging estructurado y métricas de rendimiento
@@ -154,7 +177,7 @@ Funcionalidades completadas y en producción:
   - Métricas de rendimiento disponibles
   - Alertas de sistema
 
-#### 10. Cacheo y Optimización de Rendimiento
+#### 11. Cacheo y Optimización de Rendimiento
 - **ID**: FEAT-010
 - **Prioridad**: Baja
 - **Descripción**: Para mejorar rendimiento de vistas jerárquicas complejas
@@ -167,7 +190,7 @@ Funcionalidades completadas y en producción:
   - Carga eficiente de estructuras complejas
   - Reducción de carga en la base de datos
 
-#### 11. Dashboard Avanzado de Métricas
+#### 12. Dashboard Avanzado de Métricas
 - **ID**: FEAT-011
 - **Prioridad**: Baja
 - **Descripción**: KPIs, % de cumplimiento, alertas por subproducto
