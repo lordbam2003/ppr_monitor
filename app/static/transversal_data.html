@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Datos Transversales - Sistema de Monitoreo PPR</title>
+    <title>Datos Transversales - Redirección - Sistema de Monitoreo PPR</title>
     <!-- Bootstrap 5 CSS -->
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -50,123 +50,29 @@
     </nav>
 
     <div class="container-fluid mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1><i class="fas fa-layer-group me-2"></i>Datos Transversales</h1>
-            <div>
-                <button class="btn btn-primary me-2" id="refreshBtn">
-                    <i class="fas fa-sync-alt me-1"></i>Actualizar
-                </button>
-            </div>
-        </div>
-
-        <!-- Tab navigation -->
-        <ul class="nav nav-tabs mb-4" id="transversalTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="cartera-tab" data-bs-toggle="tab" data-bs-target="#cartera" type="button" role="tab">Cartera Servicios</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="ceplan-tab" data-bs-toggle="tab" data-bs-target="#ceplan" type="button" role="tab">CEPLAN</button>
-            </li>
-        </ul>
-
-        <!-- Tab content -->
-        <div class="tab-content" id="transversalTabContent">
-            <!-- Cartera Tab -->
-            <div class="tab-pane fade show active" id="cartera" role="tabpanel">
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-folder-open me-2"></i>Cartera de Servicios</h5>
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadCarteraModal">
-                            <i class="fas fa-file-upload me-1"></i>Subir Cartera
-                        </button>
-                    </div>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card text-center">
                     <div class="card-body">
-                        <div id="carteraLoading" class="text-center my-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Cargando Cartera...</span>
-                            </div>
-                            <p class="mt-2">Cargando datos de Cartera de Servicios...</p>
+                        <i class="fas fa-info-circle fa-3x text-info mb-3"></i>
+                        <h2 class="card-title">Datos Transversales</h2>
+                        <p class="card-text">
+                            La funcionalidad de Datos Transversales (CEPLAN y Cartera de Servicios) 
+                            ha sido integrada en la vista de <strong>PPRs</strong>.
+                        </p>
+                        <p class="card-text">
+                            Todos los datos están ahora disponibles en una única interfaz 
+                            organizada por pestañas para una mejor experiencia de usuario.
+                        </p>
+                        <div class="mt-4">
+                            <a href="/ppr" class="btn btn-primary btn-lg me-2">
+                                <i class="fas fa-table me-1"></i>Ir a PPRs
+                            </a>
+                            <button class="btn btn-info btn-lg" onclick="redirectToPprWithTab('cartera')">
+                                <i class="fas fa-folder-open me-1"></i>Ir a Cartera
+                            </button>
                         </div>
-                        <div id="carteraData" class="table-responsive" style="display: none;"></div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- CEPLAN Tab -->
-            <div class="tab-pane fade" id="ceplan" role="tabpanel">
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-file-invoice me-2"></i>CEPLAN</h5>
-                        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#uploadCeplanModal">
-                            <i class="fas fa-file-upload me-1"></i>Subir CEPLAN
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="ceplanLoading" class="text-center my-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Cargando CEPLAN...</span>
-                            </div>
-                            <p class="mt-2">Cargando datos CEPLAN...</p>
-                        </div>
-                        <div id="ceplanData" class="table-responsive" style="display: none;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Upload Cartera Modal -->
-    <div class="modal fade" id="uploadCarteraModal" tabindex="-1" aria-labelledby="uploadCarteraModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="uploadCarteraModalLabel">Subir Cartera de Servicios</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="uploadCarteraForm">
-                        <div class="mb-3">
-                            <label for="carteraFile" class="form-label">Seleccionar archivo de Cartera de Servicios</label>
-                            <input type="file" class="form-control" id="carteraFile" accept=".xlsx,.xls" required>
-                            <div class="form-text">Formato permitido: Excel (.xlsx, .xls). Tamaño máximo: 50MB</div>
-                        </div>
-                        <div class="mb-3">
-                            <p class="mb-1"><strong>Formato esperado:</strong></p>
-                            <ul class="mb-0">
-                                <li>Columnas requeridas: Programa, Producto, Actividad, Sub Producto, Trazador, Unidad de Medida</li>
-                                <li>Cada campo debe contener código y nombre separados por espacio (ej: "0002 SALUD MATERNO NEONATAL")</li>
-                            </ul>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="uploadCarteraBtn">Subir Archivo</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Upload CEPLAN Modal -->
-    <div class="modal fade" id="uploadCeplanModal" tabindex="-1" aria-labelledby="uploadCeplanModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="uploadCeplanModalLabel">Subir Archivo CEPLAN</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="uploadCeplanForm">
-                        <div class="mb-3">
-                            <label for="ceplanFile" class="form-label">Seleccionar archivo CEPLAN</label>
-                            <input type="file" class="form-control" id="ceplanFile" accept=".xlsx,.xls" required>
-                            <div class="form-text">Formato permitido: Excel (.xlsx, .xls). Tamaño máximo: 100MB</div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="uploadCeplanBtn">Subir Archivo</button>
                 </div>
             </div>
         </div>
@@ -200,184 +106,17 @@
     <script src="/static/js/sweetalert2.min.js"></script>
     <script src="/static/js/main.js"></script>
     <script>
+        // Initialize auth on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadCarteraData();
-            initializeEventListeners();
+            // Update navigation based on auth status
+            updateNavigation();
         });
 
-        async function loadCarteraData() {
-            try {
-                document.getElementById('carteraLoading').style.display = 'block';
-                document.getElementById('carteraData').style.display = 'none';
-
-                const response = await callAPI('/cartera', 'GET');
-                
-                if (response && response.data && response.data.length > 0) {
-                    displayCarteraData(response.data);
-                } else {
-                    document.getElementById('carteraLoading').innerHTML = '<div class="alert alert-info text-center">No hay datos de Cartera de Servicios cargados.</div>';
-                }
-            } catch (error) {
-                console.error('Error loading Cartera data:', error);
-                document.getElementById('carteraLoading').innerHTML = `<div class="alert alert-danger text-center">Error al cargar datos de Cartera: ${error.message}</div>`;
-            }
-        }
-
-        function displayCarteraData(carteraData) {
-            let html = `
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Programa Código</th>
-                            <th>Programa Nombre</th>
-                            <th>Producto Código</th>
-                            <th>Producto Nombre</th>
-                            <th>Actividad Código</th>
-                            <th>Actividad Nombre</th>
-                            <th>Sub Producto Código</th>
-                            <th>Sub Producto Nombre</th>
-                            <th>Trazador</th>
-                            <th>Unidad Medida</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-
-            carteraData.forEach(item => {
-                html += `<tr>
-                    <td>${item.id || ''}</td>
-                    <td><strong>${item.programa_codigo || ''}</strong></td>
-                    <td>${item.programa_nombre || ''}</td>
-                    <td><strong>${item.producto_codigo || ''}</strong></td>
-                    <td>${item.producto_nombre || ''}</td>
-                    <td><strong>${item.actividad_codigo || ''}</strong></td>
-                    <td>${item.actividad_nombre || ''}</td>
-                    <td><strong>${item.sub_producto_codigo || ''}</strong></td>
-                    <td>${item.sub_producto_nombre || ''}</td>
-                    <td class="text-center"><span class="badge bg-${item.trazador === 'X' ? 'success' : 'secondary'}">${item.trazador || ''}</span></td>
-                    <td>${item.unidad_medida || ''}</td>
-                </tr>`;
-            });
-            
-            html += '</tbody></table></div>';
-            
-            document.getElementById('carteraData').innerHTML = html;
-            document.getElementById('carteraLoading').style.display = 'none';
-            document.getElementById('carteraData').style.display = 'block';
-        }
-
-        async function loadCEPLANData() {
-            try {
-                document.getElementById('ceplanLoading').style.display = 'block';
-                document.getElementById('ceplanData').style.display = 'none';
-
-                // For now, we'll display a message since we don't have an endpoint to get all CEPLAN data
-                // In the future, you could create an endpoint that returns all CEPLAN data
-                document.getElementById('ceplanLoading').innerHTML = `
-                    <div class="alert alert-info text-center">
-                        <p>La visualización de todos los datos CEPLAN no está implementada aún.</p>
-                        <p>Los datos CEPLAN se visualizan actualmente en la vista detallada de cada PPR.</p>
-                    </div>`;
-            } catch (error) {
-                console.error('Error loading CEPLAN data:', error);
-                document.getElementById('ceplanLoading').innerHTML = `<div class="alert alert-danger text-center">Error al cargar datos CEPLAN: ${error.message}</div>`;
-            }
-        }
-
-        function initializeEventListeners() {
-            // Refresh button
-            document.getElementById('refreshBtn').addEventListener('click', function() {
-                const activeTab = document.querySelector('.tab-pane.active');
-                if (activeTab.id === 'cartera') {
-                    loadCarteraData();
-                } else if (activeTab.id === 'ceplan') {
-                    loadCEPLANData();
-                }
-            });
-
-            // Tab events for lazy loading
-            document.getElementById('cartera-tab').addEventListener('shown.bs.tab', function () {
-                loadCarteraData();
-            });
-
-            document.getElementById('ceplan-tab').addEventListener('shown.bs.tab', function () {
-                if (!this.dataset.loaded) {
-                    loadCEPLANData();
-                    this.dataset.loaded = 'true';
-                }
-            });
-
-            // Upload buttons
-            document.getElementById('uploadCarteraBtn').addEventListener('click', uploadCarteraFile);
-            document.getElementById('uploadCeplanBtn').addEventListener('click', uploadCeplanFile);
-        }
-
-        async function uploadCarteraFile() {
-            const fileInput = document.getElementById('carteraFile');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                showError('Por favor seleccione un archivo');
-                return;
-            }
-
-            try {
-                showLoading('Subiendo y procesando Cartera de Servicios...');
-                const result = await callAPIWithFile('/cartera', file);
-                
-                if (result && result.preview_id) {
-                    showSuccess('Cartera de Servicios subida y procesada exitosamente. Redirigiendo a la vista previa...');
-                    
-                    document.getElementById('uploadCarteraModal').querySelector('.btn-close').click();
-                    document.getElementById('uploadCarteraForm').reset();
-                    
-                    setTimeout(() => {
-                        window.location.href = `/preview?id=${result.preview_id}&type=cartera`;
-                    }, 1500);
-                } else {
-                    showSuccess('Cartera de Servicios subida exitosamente');
-                    document.getElementById('uploadCarteraModal').querySelector('.btn-close').click();
-                    document.getElementById('uploadCarteraForm').reset();
-                    loadCarteraData(); // Refresh the data after upload
-                }
-            } catch (error) {
-                console.error('Error uploading Cartera file:', error);
-                hideLoading();
-            }
-        }
-
-        async function uploadCeplanFile() {
-            const fileInput = document.getElementById('ceplanFile');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                showError('Por favor seleccione un archivo');
-                return;
-            }
-
-            try {
-                showLoading('Subiendo y procesando archivo CEPLAN...');
-                const result = await callAPIWithFile('/upload/ceplan', file);
-                
-                if (result && result.preview_id) {
-                    showSuccess('Archivo CEPLAN subido y procesado exitosamente. Redirigiendo a la vista previa...');
-                    
-                    document.getElementById('uploadCeplanModal').querySelector('.btn-close').click();
-                    document.getElementById('uploadCeplanForm').reset();
-                    
-                    setTimeout(() => {
-                        window.location.href = `/preview?id=${result.preview_id}`;
-                    }, 1500);
-                } else {
-                    showSuccess('Archivo CEPLAN subido exitosamente');
-                    document.getElementById('uploadCeplanModal').querySelector('.btn-close').click();
-                    document.getElementById('uploadCeplanForm').reset();
-                }
-            } catch (error) {
-                console.error('Error uploading CEPLAN file:', error);
-                hideLoading();
-            }
+        // Redirect to specific tabs
+        function redirectToPprWithTab(tab) {
+            // Set the tab in localStorage to indicate which tab to show
+            localStorage.setItem('preferredTab', tab);
+            window.location.href = '/ppr';
         }
     </script>
 </body>

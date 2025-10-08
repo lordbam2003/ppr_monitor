@@ -31,13 +31,13 @@
                         <a class="nav-link" href="/ppr"><i class="fas fa-table me-1"></i> PPRs</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/transversal_data"><i class="fas fa-layer-group me-1"></i> Datos Transversales</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="/users"><i class="fas fa-users me-1"></i> Usuarios</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/reports"><i class="fas fa-chart-bar me-1"></i> Reportes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/transversal_data"><i class="fas fa-layer-group me-1"></i> Datos Transversales</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
@@ -165,8 +165,11 @@
     <script src="/static/js/sweetalert2.min.js"></script>
     <script src="/static/js/main.js"></script>
     <script>
-        // Load recent activities when page loads
+        // Initialize auth on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Update navigation based on auth status
+            updateNavigation();
+            
             loadRecentActivities();
         });
 
@@ -241,7 +244,12 @@
         window.performAction = function(action) {
             switch(action) {
                 case 'view-ppr':
-                    window.location.href = '/ppr';
+                    // Verificar autenticación y permisos
+                    if (getAuthToken()) {
+                        window.location.href = '/ppr';
+                    } else {
+                        showLoginPrompt();
+                    }
                     break;
                 case 'manage-users':
                     // Verificar autenticación y permisos
@@ -252,7 +260,12 @@
                     }
                     break;
                 case 'view-reports':
-                    window.location.href = '/reports';
+                    // Verificar autenticación y permisos
+                    if (getAuthToken()) {
+                        window.location.href = '/reports';
+                    } else {
+                        showLoginPrompt();
+                    }
                     break;
                 default:
                     if (originalPerformAction) {
