@@ -1,0 +1,79 @@
+Reglas de extracción / heurísticas
+
+Buscar nombre del PPR: en las primeras 20 filas buscar celdas que contengan (sin mayúsculas/minúsculas): programa presupuestal, programa presup. o ppr. Extraer el texto posterior al símbolo : si existe; si no, tomar la celda contigua derecha/izquierda. Normalizar: codigo (p. ej. 002) y nombre (texto restante).
+
+Localizar fila de cabecera de la tabla principal: buscar dentro del sheet la primera fila que contenga alguna de estas palabras (tolerancia con regex y espacios):
+
+cod, codigo, cod.prod, cod.producto, cod.produ → para COD.PROD
+
+actividad, cod.actividad, cod.act
+
+subproducto, cod.subproducto, sub.prod
+
+meta fisica, meta anual, meta física anual
+
+meses: ene, feb, mar, ... dic (o enero, etc.) — identificar columnas donde aparecen los meses.
+
+columnas “PROG.” / “EJEC.” o indicadores P / E.
+
+Construir mapa de columnas dinámico: una vez detectada la fila cabecera, mapear índice de columna → campo semántico (producto-código, producto-nombre, actividad-código, subproducto-código, unidad de medida, meta anual, prog/ejec por mes).
+
+Lectura de filas: iterar filas posteriores hasta fila con totales o renglones vacíos consecutivos (p. ej. 10 filas vacías) o hasta fin de sheet. Manejar filas con celdas combinadas: propagar valores hacia abajo hasta que cambien.
+
+Normalización códigos: extraer códigos con regex (p. ej. \d{6,7} o patrón \d{3}) y limpiar prefijos (AOI00162600455 - 0087901 - NOMBRE). Siempre priorizar el código de subproducto que coincida con CEPLAN (p. ej. 0087901).
+
+Cronograma P/E: detectar si cronograma aparece como pares por mes (ejemplo columna ENE con dos filas P y E) o en la misma fila (p. ej. Programado 25 - Ejecutado 20). Soportar ambos casos.
+
+Validaciones:
+
+Si meta_anual es numérico y divisible por 12 → permitir distribución automática mensual.
+
+Si no divisible → indicar diferencia y forzar intervención manual del responsable para asignación mensual.
+
+Valores faltantes o no numéricos → marcar en campo warnings.
+
+Manejo del CEPLAN: archivo más plano: extraer por fila codigo_subproducto, nombre_subproducto, prog_mes, ejec_mes. Validar códigos numéricos, normalizar ceros/puntos/comas.
+
+Matching / Cruce PPR ↔ CEPLAN
+
+Clave primaria de cruce: codigo_subproducto (normalizado: quitar espacios, guiones).
+
+Si no se encuentra match directo, usar heurísticas:
+
+Buscar coincidencia aproximada por nombre (fuzzy match, Levenshtein) si el código no existe.
+
+Registrar coincidencias manuales sugeridas para validación por el responsable de planificación.
+
+Salida esperada del extractor (JSON ejemplo)
+
+{
+  "ppr": {
+    "codigo": "002",
+    "nombre": "SALUD MATERNO NEONATAL",
+    "anio": 2025
+  },
+  "productos": [
+    {
+      "codigo_producto": "3000001",
+      "nombre_producto": "ACCIONES COMUNES",
+      "actividades": [
+        {
+          "codigo_actividad": "5004430",
+          "nombre_actividad": "MONITOREO, SUPERVISION...",
+          "subproductos": [
+            {
+              "codigo_subproducto": "4427702",
+              "nombre_subproducto": "MONITOREO DEL PROGRAMA...",
+              "unidad_medida": "INFORME",
+              "meta_anual": 2,
+              "programado": {"ene":0,"feb":0,...,"dic":1},
+              "ejecutado": {"ene":0,"feb":0,...,"dic":0},
+              "warnings": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "logs": [{"row": 34, "warning": "meta_anual no numerica"}]
+}

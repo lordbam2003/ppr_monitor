@@ -1,0 +1,12 @@
+CODIGO,NOMBRE PPR
+0002,Salud materno neonatal
+0016,TBC-VIH/SIDA
+0017,Enfermedades metaxenicas y zoonosis
+0018,Enfermedades no transmisibles
+0024,Prevención y control del cáncer
+0068,Reducción de vulnerabilidad y atención de emergencias por desastres
+0104,Reducción de la mortalidad por emergencias y urgencias medica
+0129,Prevención y manejo de condiciones secundarias de salud en personas con discapacidad
+0131,Control y prevención en salud mental 
+1001,Productos Específicos para desarrollo infantil temprano (RS 023-2019-EF)
+1002,Productos Específicos para la reducción de la violencia contra la mujer (RS 024-2019-EF) 

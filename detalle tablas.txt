@@ -1,0 +1,131 @@
+Registro de Cambios Recientes - Cartera de Servicios
+Fecha: 2025-10-07
+
+Problema resuelto: Visualización de datos de cartera de servicios
+
+1. Archivo: app/static/js/preview.js
+   - Línea modificada: Añadida visibilidad del contenedor para datos de cartera
+   - Descripción: Se agregó document.getElementById('previewContainer').classList.remove('d-none'); 
+     en la función displayCarteraPreviewData para que los datos procesados se muestren en la interfaz
+   
+   - Línea modificada: Cambio de redirección post-confirmación
+   - Descripción: Se cambió la redirección de /cartera a /transversal_data en la función commitPreviewData 
+     para que sea consistente con la estructura existente de la aplicación
+
+2. Archivo: app/api/v1/cartera.py
+   - Línea modificada: Cambio en el endpoint de confirmación
+   - Descripción: Se corrigió cómo se pasan los datos al servicio de almacenamiento para que se extraiga 
+     correctamente el array de cartera de la estructura de datos (de preview_data['cartera_data']['cartera'] 
+     en lugar de directamente de preview_data['cartera'])
+
+Entidades principales
+
+Programa Presupuestal (PPR)
+
+id_ppr
+
+codigo_ppr (ej. 002)
+
+nombre_ppr (ej. Salud Materno Neonatal)
+
+anio
+
+estado (activo, cerrado)
+
+Producto
+
+id_producto
+
+codigo_producto
+
+nombre_producto
+
+FK → id_ppr
+
+Actividad
+
+id_actividad
+
+codigo_actividad
+
+nombre_actividad
+
+FK → id_producto
+
+Subproducto
+
+id_subproducto
+
+codigo_subproducto
+
+nombre_subproducto
+
+Unidad de medida (ej. persona, familia, caso tratado)
+
+FK → id_actividad
+
+Programación / Ejecución (PPR)
+
+id_prog_ppr
+
+id_subproducto
+
+anio
+
+meta_anual
+
+Campos mensuales (ej. prog_ene, ejec_ene, … prog_dic, ejec_dic)
+
+Programación / Ejecución (CEPLAN)
+
+id_prog_ceplan
+
+id_subproducto (clave de cruce con PPR)
+
+anio
+
+Campos mensuales (prog_ene, ejec_ene, … prog_dic, ejec_dic)
+
+Diferencias / Monitoreo
+
+id_diferencia
+
+id_subproducto
+
+anio
+
+Campos de diferencia mensual (ej. dif_prog_ene, dif_ejec_ene, etc.)
+
+Estado (ok, alerta, pendiente revisión)
+
+Usuario
+
+id_usuario
+
+nombre
+
+rol (Administrador / Responsable PPR / Responsable Planificación)
+
+Relación N:M con PPR (porque un PPR puede tener varios responsables y un usuario puede tener más de un PPR asignado)
+
+📌 Relaciones principales
+
+Un PPR tiene varios Productos.
+
+Un Producto tiene varias Actividades.
+
+Una Actividad tiene varios Subproductos.
+
+Cada Subproducto tiene metas y cronogramas (PPR).
+
+Cada Subproducto también tiene datos CEPLAN (oficiales).
+
+Los responsables se asignan a nivel de PPR (1:N o N:M según el caso).
+
+Los reportes de diferencias se generan a nivel de Subproducto por año.
+
+📌 Vista del modelo (simplificada)
+PPR ──< Producto ──< Actividad ──< Subproducto ──< ProgramaciónPPR
+                                              		            └─< ProgramaciónCEPLAN
+                                              └─< Diferencias
+Usuario ──< Asignación ──< PPR

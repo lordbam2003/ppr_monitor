@@ -1,0 +1,105 @@
+/* Estilos personalizados para la aplicación de monitoreo PPR */
+
+/* Estilos generales */
+body {
+    background-color: #f8f9fa;
+}
+
+/* Estilos para las tarjetas */
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Estilos para las cabeceras de tabla */
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+
+/* Estilos para los badges */
+.badge {
+    font-size: 0.75em;
+}
+
+/* Estilos para botones */
+.btn {
+    border-radius: 0.375rem;
+}
+
+/* Estilos para el footer */
+footer {
+    margin-top: 2rem;
+}
+
+/* Estilos para los enlaces de navegación */
+.navbar-nav .nav-link {
+    transition: all 0.2s;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #e9ecef !important;
+}
+
+/* Estilos para el contenedor principal */
+.container {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+/* Estilos para las cards de inicio */
+.card-body.text-center {
+    padding: 2rem 1rem;
+}
+
+/* Estilos para los botones de acción */
+.btn-outline-primary, 
+.btn-outline-success, 
+.btn-outline-info {
+    transition: all 0.2s;
+}
+
+.btn-outline-primary:hover, 
+.btn-outline-success:hover, 
+.btn-outline-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Estilos para la tabla de actividades */
+.table-responsive {
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+/* Estilos para el dashboard */
+.bg-light {
+    background-color: #f8f9fa !important;
+    border-radius: 0.5rem;
+}
+
+/* Estilos para las alertas */
+.alert {
+    border-radius: 0.375rem;
+}
+
+/* Estilos para los modales */
+.modal-content {
+    border-radius: 0.5rem;
+    border: none;
+}
+
+/* Estilos para inputs y selects */
+.form-control, .form-select {
+    border-radius: 0.375rem;
+}
+
+/* Estilos para los tooltips */
+.tooltip-inner {
+    border-radius: 0.25rem;
+}

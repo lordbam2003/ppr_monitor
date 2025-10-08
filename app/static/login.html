@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Sistema de Monitoreo PPR</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/static/css/fontawesome.min.css">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="/static/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .login-card {
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="card login-card">
+            <div class="card-header text-center py-4">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-lock me-2 text-primary"></i>Sistema de Monitoreo PPR
+                </h3>
+                <p class="mb-0 text-muted">Iniciar Sesión</p>
+            </div>
+            <div class="card-body">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" placeholder="Ingrese su email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="password" placeholder="Ingrese su contraseña" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                        <label class="form-check-label" for="rememberMe">Recordarme</label>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center text-muted">
+                <small>¿No tiene cuenta? <a href="#" onclick="showRegister()">Contacte al administrador</a></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="/static/js/sweetalert2.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        });
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Show loading state during login
+            Swal.fire({
+                title: 'Iniciando sesión...',
+                text: 'Por favor espere mientras validamos sus credenciales',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', email);
+                formData.append('password', password);
+                
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                // Close loading state
+                Swal.close();
+                
+                if (response.ok) {
+                    // Store the token in localStorage
+                    localStorage.setItem('access_token', result.access_token);
+                    localStorage.setItem('token_type', result.token_type);
+                    
+                    // Show success message
+                    showSuccess('Inicio de sesión exitoso');
+                    
+                    // Redirect to main page after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showError(result.detail || 'Error de autenticación');
+                }
+            } catch (error) {
+                // Close loading state in case of error
+                Swal.close();
+                console.error('Login error:', error);
+                showError('Error de conexión al iniciar sesión');
+            }
+        }
+
+        function showRegister() {
+            Swal.fire({
+                title: 'Registro de Usuarios',
+                html: `
+                    <div class="text-start">
+                        <p>El registro de nuevos usuarios está restringido a administradores.</p>
+                        <p>Por favor, contacte al administrador del sistema para solicitar acceso.</p>
+                        <p><strong>Email de contacto:</strong> admin@monitorppr.com</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Aceptar',
+                confirmButtonColor: '#0d6efd'
+            });
+        }
+    </script>
+</body>
+</html>

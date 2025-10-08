@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Sistema de Monitoreo PPR</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/static/css/fontawesome.min.css">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="/static/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Monitor PPR
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ppr"><i class="fas fa-table me-1"></i> PPRs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-users me-1"></i> Usuarios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/transversal_data"><i class="fas fa-layer-group me-1"></i> Datos Transversales</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/reports"><i class="fas fa-chart-bar me-1"></i> Reportes</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login"><i class="fas fa-user-circle me-1"></i> Iniciar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-users me-2"></i>Gestión de Usuarios</h1>
+            <div>
+                <button class="btn btn-primary me-2" id="refreshUsersBtn">
+                    <i class="fas fa-sync-alt me-1"></i>Actualizar
+                </button>
+                <button class="btn btn-success" id="addUserBtn" onclick="openAddUserModal()" style="display: none;">
+                    <i class="fas fa-plus me-1"></i>Agregar Usuario
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="userTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Fecha Creación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                            <!-- Data will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userModalLabel">Agregar/Editar Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label for="userName" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="userName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="userEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userRole" class="form-label">Rol</label>
+                            <select class="form-control" id="userRole" required>
+                                <option value="Administrador">Administrador</option>
+                                <option value="Responsable PPR">Responsable PPR</option>
+                                <option value="Responsable Planificación">Responsable Planificación</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="userActive">
+                            <label class="form-check-label" for="userActive">Usuario Activo</label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userPassword" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="userPassword" required>
+                            <div class="form-text">Dejar vacío para mantener la contraseña actual</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveUserBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Sistema de Monitoreo PPR</h5>
+                    <p>Plataforma para el seguimiento de Programas Presupuestales (PPR) y CEPLAN</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Contacto</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> soporte@monitorppr.com</li>
+                        <li><i class="fas fa-phone me-2"></i> +57 123 456 7890</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <small>&copy; 2023 Sistema de Monitoreo PPR. Todos los derechos reservados.</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="/static/js/sweetalert2.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    <script>
+        // User Management specific functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUsers();
+            checkUserPermissions();
+            
+            // Event listeners
+            document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
+            document.getElementById('saveUserBtn').addEventListener('click', saveUser);
+        });
+
+        async function checkUserPermissions() {
+            try {
+                const response = await callAPI('/auth/me', 'GET');
+                if (response && response.rol === 'Administrador') {
+                    document.getElementById('addUserBtn').style.display = 'inline-block';
+                }
+            } catch (error) {
+                console.error('Error checking user permissions:', error);
+                // User is not authenticated, hide the add button
+                document.getElementById('addUserBtn').style.display = 'none';
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await callAPI('/users', 'GET');
+                const tbody = document.getElementById('userTableBody');
+                tbody.innerHTML = '';
+                
+                if (response && Array.isArray(response)) {
+                    response.forEach(user => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${user.id_usuario}</td>
+                            <td>${user.nombre}</td>
+                            <td>${user.email}</td>
+                            <td><span class="badge bg-${getRoleBadgeColor(user.rol)}">${getRoleDisplayName(user.rol)}</span></td>
+                            <td><span class="badge bg-${user.is_active ? 'success' : 'danger'}">${user.is_active ? 'Activo' : 'Inactivo'}</span></td>
+                            <td>${user.fecha_creacion ? new Date(user.fecha_creacion).toLocaleDateString() : 'N/A'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary me-1" onclick="editUser(${user.id_usuario})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id_usuario}, '${escapeHtml(user.nombre)}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                if (error.message.includes('403')) {
+                    showError('No tiene permisos para ver los usuarios');
+                } else {
+                    showError('Error al cargar los usuarios');
+                }
+            }
+        }
+
+        function getRoleBadgeColor(role) {
+            switch(role) {
+                case 'admin': return 'primary';
+                case 'responsable_ppr': return 'warning';
+                case 'responsable_planificacion': return 'info';
+                default: return 'secondary';
+            }
+        }
+
+        function getRoleDisplayName(role) {
+            switch(role) {
+                case 'admin': return 'Administrador';
+                case 'responsable_ppr': return 'Responsable PPR';
+                case 'responsable_planificacion': return 'Responsable Planificación';
+                default: return role;
+            }
+        }
+
+        async function editUser(userId) {
+            try {
+                // Show loading state
+                Swal.fire({
+                    title: 'Cargando datos...',
+                    text: 'Por favor espere mientras se cargan los datos del usuario',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Fetch user data
+                const response = await callAPI(`/users/${userId}`, 'GET');
+                
+                // Close loading state
+                Swal.close();
+                
+                if (response) {
+                    // Populate the form
+                    document.getElementById('userId').value = response.id_usuario;
+                    document.getElementById('userName').value = response.nombre;
+                    document.getElementById('userEmail').value = response.email;
+                    document.getElementById('userRole').value = response.rol;
+                    document.getElementById('userActive').checked = response.is_active;
+                    document.getElementById('userPassword').value = ''; // Don't show password
+                    
+                    // Change modal title and button text
+                    document.getElementById('userModalLabel').textContent = 'Editar Usuario';
+                    document.getElementById('saveUserBtn').textContent = 'Actualizar';
+                    
+                    // Show the modal
+                    const modal = new bootstrap.Modal(document.getElementById('userModal'));
+                    modal.show();
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                Swal.close();
+                showError('Error al cargar los datos del usuario');
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function deleteUser(userId, userName) {
+            const escapedUserName = escapeHtml(userName);
+            Swal.fire({
+                title: '¿Está seguro?',
+                text: `El usuario "${escapedUserName}" será eliminado permanentemente. Esta acción no se puede deshacer.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const response = await callAPI(`/users/${userId}`, 'DELETE');
+                        showSuccess('Usuario eliminado exitosamente');
+                        loadUsers(); // Refresh the list
+                    } catch (error) {
+                        console.error('Error deleting user:', error);
+                        if (error.message.includes('403')) {
+                            showError('No tiene permisos para eliminar usuarios');
+                        } else if (error.message.includes('400')) {
+                            showError('No se puede eliminar al usuario administrador principal');
+                        } else {
+                            showError('Error al eliminar el usuario');
+                        }
+                    }
+                }
+            });
+        }
+
+        function openAddUserModal() {
+            // Reset the form
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+            
+            // Change modal title and button text
+            document.getElementById('userModalLabel').textContent = 'Agregar Usuario';
+            document.getElementById('saveUserBtn').textContent = 'Guardar';
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('userModal'));
+            modal.show();
+        }
+        
+        async function saveUser() {
+            // Get form data
+            const userId = document.getElementById('userId').value;
+            const userName = document.getElementById('userName').value;
+            const userEmail = document.getElementById('userEmail').value;
+            const userRole = document.getElementById('userRole').value;
+            const userActive = document.getElementById('userActive').checked;
+            const userPassword = document.getElementById('userPassword').value;
+
+            // Basic validation
+            if (!userName || !userEmail) {
+                showError('Por favor complete los campos requeridos');
+                return;
+            }
+
+            // Prepare user data
+            const userData = {
+                nombre: userName,
+                email: userEmail,
+                rol: userRole,
+                is_active: userActive
+            };
+
+            // Include password only if it's being changed
+            if (userPassword) {
+                userData.password = userPassword;
+            }
+
+            try {
+                let response;
+                if (userId) {
+                    // Update existing user
+                    response = await callAPI(`/users/${userId}`, 'PUT', userData);
+                    showSuccess('Usuario actualizado exitosamente');
+                } else {
+                    // Create new user
+                    response = await callAPI('/users', 'POST', userData);
+                    showSuccess('Usuario creado exitosamente');
+                }
+
+                // Close the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
+                if (modal) {
+                    modal.hide();
+                }
+
+                // Reload the users list
+                loadUsers();
+            } catch (error) {
+                console.error('Error saving user:', error);
+                showError('Error al guardar el usuario');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE-specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.pyc
+*.pyo
+*~
+
+# Database files
+*.db
+monitor_ppr.db
+*.sqlite
+
+# Environment variables
+.env
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Uploads and temp files
+uploads/
+temp/
+temp_uploads/
+temp_downloads/
+
+# Test files that might contain sensitive data
+test_archivos/
+archivos_test/
+extractor_test/
+
+# Migration files backup (only if needed to exclude)
+# alembic/versions/*.bak
+
+# __pycache__ folders in alembic
+alembic/versions/__pycache__/
+
+# Local configuration files
+config_local.py
+local_settings.py
+
+# Lock files
+*.~lock.*
+*#
+
+# Excel and other temporary files
+*.tmp
+*~
+*#

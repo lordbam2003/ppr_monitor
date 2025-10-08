@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de PPR - Sistema de Monitoreo PPR</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/static/css/fontawesome.min.css">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="/static/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Monitor PPR
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ppr"><i class="fas fa-table me-1"></i> PPRs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/transversal_data"><i class="fas fa-layer-group me-1"></i> Datos Transversales</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users"><i class="fas fa-users me-1"></i> Usuarios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/reports"><i class="fas fa-chart-bar me-1"></i> Reportes</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login"><i class="fas fa-user-circle me-1"></i> Iniciar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-file-alt me-2"></i>Detalle del PPR</h1>
+            <div>
+                <button class="btn btn-primary me-2" id="refreshBtn">
+                    <i class="fas fa-sync-alt me-1"></i>Actualizar
+                </button>
+                <a class="btn btn-secondary" href="/ppr">
+                    <i class="fas fa-arrow-left me-1"></i>Volver
+                </a>
+            </div>
+        </div>
+
+        <!-- PPR Header -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Código</h6>
+                        <p class="mb-0" id="pprCodigo">Cargando...</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Nombre</h6>
+                        <p class="mb-0" id="pprNombre">Cargando...</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Año</h6>
+                        <p class="mb-0" id="pprAnio">Cargando...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="loadingIndicator" class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando estructura del PPR...</p>
+        </div>
+
+        <!-- Tab navigation -->
+        <ul class="nav nav-tabs mb-4" id="pprTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="estructura-tab" data-bs-toggle="tab" data-bs-target="#estructura" type="button" role="tab">Estructura PPR</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="ceplan-tab" data-bs-toggle="tab" data-bs-target="#ceplan" type="button" role="tab">CEPLAN</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cartera-tab" data-bs-toggle="tab" data-bs-target="#cartera" type="button" role="tab">Cartera Servicios</button>
+            </li>
+        </ul>
+
+        <!-- Tab content -->
+        <div class="tab-content" id="pprTabContent">
+            <!-- Estructura PPR Tab -->
+            <div class="tab-pane fade show active" id="estructura" role="tabpanel">
+                <div id="pprContent" style="display: none;">
+                    <!-- Products will be loaded here dynamically -->
+                </div>
+            </div>
+            
+            <!-- CEPLAN Tab -->
+            <div class="tab-pane fade" id="ceplan" role="tabpanel">
+                <div id="ceplanContent">
+                    <div id="ceplanLoading" class="text-center my-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando CEPLAN...</span>
+                        </div>
+                        <p class="mt-2">Cargando datos CEPLAN...</p>
+                    </div>
+                    <div id="ceplanData" style="display: none;"></div>
+                </div>
+            </div>
+            
+            <!-- Cartera Tab -->
+            <div class="tab-pane fade" id="cartera" role="tabpanel">
+                <div id="carteraContent">
+                    <div id="carteraLoading" class="text-center my-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando Cartera...</span>
+                        </div>
+                        <p class="mt-2">Cargando datos de Cartera de Servicios...</p>
+                    </div>
+                    <div id="carteraData" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Sistema de Monitoreo PPR</h5>
+                    <p>Plataforma para el seguimiento de Programas Presupuestales (PPR) y CEPLAN</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Contacto</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> soporte@monitorppr.com</li>
+                        <li><i class="fas fa-phone me-2"></i> +57 123 456 7890</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <small>&copy; 2023 Sistema de Monitoreo PPR. Todos los derechos reservados.</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="/static/js/sweetalert2.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Get PPR ID from URL query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const pprId = urlParams.get('id');
+
+        if (!pprId) {
+            document.getElementById('loadingIndicator').innerHTML = '<div class="alert alert-danger">Error: No se proporcionó un ID de PPR válido.</div>';
+            document.getElementById('loadingIndicator').style.display = 'block';
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                loadPPRDetalle(pprId);
+                
+                document.getElementById('refreshBtn').addEventListener('click', function() {
+                    loadPPRDetalle(pprId);
+                });
+            });
+        }
+
+        async function loadPPRDetalle(pprId) {
+            try {
+                document.getElementById('loadingIndicator').style.display = 'block';
+                document.getElementById('pprContent').style.display = 'none';
+
+                const response = await callAPI(`/pprs/${pprId}/estructura`, 'GET');
+                
+                if (response && response.data) {
+                    displayPPRStructure(response.data);
+                } else {
+                    document.getElementById('loadingIndicator').innerHTML = '<div class="alert alert-danger">Error: No se pudieron cargar los datos del PPR.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading PPR structure:', error);
+                document.getElementById('loadingIndicator').innerHTML = `<div class="alert alert-danger">Error al cargar la estructura del PPR: ${error.message}</div>`;
+            } finally {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('pprContent').style.display = 'block';
+            }
+        }
+
+        function displayPPRStructure(structure) {
+            document.getElementById('pprCodigo').textContent = structure.ppr.codigo;
+            document.getElementById('pprNombre').textContent = structure.ppr.nombre;
+            document.getElementById('pprAnio').textContent = structure.ppr.anio;
+
+            const contentDiv = document.getElementById('pprContent');
+            contentDiv.innerHTML = generatePPRHTML(structure);
+        }
+
+        function getPercentageIndicator(porcentaje) {
+            let icon = '', color = '', tooltip = '';
+            if (porcentaje < 40) {
+                icon = 'fas fa-exclamation-triangle';
+                color = 'danger';
+                tooltip = 'Menor al 40% - Requiere atención';
+            } else if (porcentaje >= 40 && porcentaje < 70) {
+                icon = 'fas fa-exclamation-circle';
+                color = 'warning';
+                tooltip = 'Entre 40% y 70% - Adecuado';
+            } else {
+                icon = 'fas fa-check-circle';
+                color = 'success';
+                tooltip = 'Mayor al 70% - Excelente';
+            }
+            return { icon, color, tooltip };
+        }
+
+        function generatePPRHTML(structure) {
+            let html = '';
+            const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+            if (structure.productos.length === 0) {
+                return '<div class="alert alert-info">No se encontraron productos para este PPR.</div>';
+            }
+
+            structure.productos.forEach((producto, prodIndex) => {
+                html += `
+                <div class="card mb-3">
+                    <div class="card-header" id="productHeading${prodIndex}">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#productCollapse${prodIndex}" aria-expanded="true" aria-controls="productCollapse${prodIndex}">
+                                <i class="fas fa-box-open me-2"></i>${producto.codigo_producto} - ${producto.nombre_producto}
+                            </button>
+                        </h5>
+                    </div>
+                    <div id="productCollapse${prodIndex}" class="collapse show" aria-labelledby="productHeading${prodIndex}">
+                        <div class="card-body">
+                `;
+                
+                producto.actividades.forEach((actividad, actIndex) => {
+                    html += `
+                    <div class="card mb-2">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <button class="btn btn-sm btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#activityCollapse${prodIndex}_${actIndex}" aria-expanded="true" aria-controls="activityCollapse${prodIndex}_${actIndex}">
+                                    <i class="fas fa-cogs me-1"></i>${actividad.codigo_actividad} - ${actividad.nombre_actividad}
+                                </button>
+                            </h6>
+                        </div>
+                        <div id="activityCollapse${prodIndex}_${actIndex}" class="collapse show">
+                            <div class="card-body p-3">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 10%;">Código</th>
+                                                <th style="width: 20%;">Nombre</th>
+                                                <th style="width: 8%;">Meta Anual</th>
+                                                <th style="width: 8%;">Fuente</th>
+                                                <th style="width: 4%;">Tipo</th>
+                                                ${months.map(m => `<th style="width: 4%;">${m.charAt(0).toUpperCase() + m.slice(1)}</th>`).join('')}
+                                                <th style="width: 6%;">%</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                    `;
+                    
+                    actividad.subproductos.forEach(subproducto => {
+                        const hasPPR = subproducto.programacion_ppr;
+                        const hasCEPLAN = subproducto.programacion_ceplan;
+                        const totalRows = (hasPPR ? 2 : 0) + (hasCEPLAN ? 2 : 0);
+
+                        if (!hasPPR && !hasCEPLAN) return;
+
+                        let firstRow = true;
+
+                        if (hasPPR) {
+                            const pprData = subproducto.programacion_ppr;
+                            const totalEjecutado = Object.values(pprData.ejecutado).reduce((a, b) => a + b, 0);
+                            const metaAnual = pprData.meta_anual || 0;
+                            const porcentaje = metaAnual > 0 ? (totalEjecutado / metaAnual) * 100 : 0;
+                            const { icon, color, tooltip } = getPercentageIndicator(porcentaje);
+
+                            // PPR Programado Row
+                            html += `<tr>`;
+                            if (firstRow) {
+                                html += `<td class="align-middle" rowspan="${totalRows}">${subproducto.codigo_subproducto}</td>`;
+                                html += `<td class="align-middle" rowspan="${totalRows}">${subproducto.nombre_subproducto}</td>`;
+                                firstRow = false;
+                            }
+                            html += `<td class="align-middle" rowspan="2">${metaAnual}</td>`;
+                            html += `<td class="align-middle fw-bold text-primary" rowspan="2">PPR</td>`;
+                            html += `<td class="table-primary text-center fw-bold">P</td>`;
+                            months.forEach(month => { html += `<td class="table-primary">${pprData.programado[month] || 0}</td>`; });
+                            html += `<td class="align-middle" rowspan="2"><span class="badge bg-${color}" title="${tooltip}"><i class="${icon}"></i> ${porcentaje.toFixed(2)}%</span></td>`;
+                            html += `</tr>`;
+
+                            // PPR Ejecutado Row
+                            html += `<tr>`;
+                            html += `<td class="table-warning text-center fw-bold">E</td>`;
+                            months.forEach(month => { html += `<td class="table-warning">${pprData.ejecutado[month] || 0}</td>`; });
+                            html += `</tr>`;
+                        }
+
+                        if (hasCEPLAN) {
+                            const ceplanData = subproducto.programacion_ceplan;
+                            const totalEjecutado = Object.values(ceplanData.ejecutado).reduce((a, b) => a + b, 0);
+                            const metaAnual = ceplanData.meta_anual || 0;
+                            const porcentaje = metaAnual > 0 ? (totalEjecutado / metaAnual) * 100 : 0;
+                            const { icon, color, tooltip } = getPercentageIndicator(porcentaje);
+
+                            // CEPLAN Programado Row
+                            html += `<tr>`;
+                            if (firstRow) {
+                                html += `<td class="align-middle" rowspan="${totalRows}">${subproducto.codigo_subproducto}</td>`;
+                                html += `<td class="align-middle" rowspan="${totalRows}">${subproducto.nombre_subproducto}</td>`;
+                                firstRow = false;
+                            }
+                            html += `<td class="align-middle" rowspan="2">${metaAnual}</td>`;
+                            html += `<td class="align-middle fw-bold text-success" rowspan="2">CEPLAN</td>`;
+                            html += `<td class="table-primary text-center fw-bold">P</td>`;
+                            months.forEach(month => { html += `<td class="table-primary">${ceplanData.programado[month] || 0}</td>`; });
+                            html += `<td class="align-middle" rowspan="2"><span class="badge bg-${color}" title="${tooltip}"><i class="${icon}"></i> ${porcentaje.toFixed(2)}%</span></td>`;
+                            html += `</tr>`;
+
+                            // CEPLAN Ejecutado Row
+                            html += `<tr>`;
+                            html += `<td class="table-warning text-center fw-bold">E</td>`;
+                            months.forEach(month => { html += `<td class="table-warning">${ceplanData.ejecutado[month] || 0}</td>`; });
+                            html += `</tr>`;
+                        }
+                    });
+
+                    html += `</tbody></table></div></div></div></div>`;
+                });
+
+                html += `</div></div></div>`;
+            });
+            
+            return html;
+        }
+
+        // Load CEPLAN data when CEPLAN tab is shown
+        document.getElementById('ceplan-tab').addEventListener('shown.bs.tab', function () {
+            if (!this.dataset.loaded) {
+                loadCEPLANData(pprId);
+                this.dataset.loaded = 'true';
+            }
+        });
+
+        // Load Cartera data when Cartera tab is shown
+        document.getElementById('cartera-tab').addEventListener('shown.bs.tab', function () {
+            if (!this.dataset.loaded) {
+                loadCarteraData();
+                this.dataset.loaded = 'true';
+            }
+        });
+
+        async function loadCEPLANData(pprId) {
+            try {
+                document.getElementById('ceplanLoading').style.display = 'block';
+                document.getElementById('ceplanData').style.display = 'none';
+
+                // Get the PPR structure which includes CEPLAN data
+                const response = await callAPI(`/pprs/${pprId}/estructura`, 'GET');
+                
+                if (response && response.data) {
+                    displayCEPLANStructure(response.data);
+                } else {
+                    document.getElementById('ceplanLoading').innerHTML = '<div class="alert alert-danger">No se encontraron datos CEPLAN para este PPR.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading CEPLAN data:', error);
+                document.getElementById('ceplanLoading').innerHTML = `<div class="alert alert-danger">Error al cargar datos CEPLAN: ${error.message}</div>`;
+            }
+        }
+
+        function displayCEPLANStructure(structure) {
+            let html = '<div class="card"><div class="card-body">';
+            html += '<h4 class="card-title">Datos CEPLAN para ' + structure.ppr.nombre + '</h4>';
+            
+            let hasCEPLANData = false;
+            const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            
+            if (structure.productos && structure.productos.length > 0) {
+                structure.productos.forEach((producto, prodIndex) => {
+                    producto.actividades.forEach((actividad, actIndex) => {
+                        actividad.subproductos.forEach(subproducto => {
+                            if (subproducto.programacion_ceplan) {
+                                hasCEPLANData = true;
+                                
+                                html += `
+                                <div class="mb-3">
+                                    <div class="border rounded p-3">
+                                        <div class="row">
+                                            <div class="col-md-2"><strong>${subproducto.codigo_subproducto}</strong></div>
+                                            <div class="col-md-5"><strong>${subproducto.nombre_subproducto}</strong></div>
+                                            <div class="col-md-2">Unidad: ${subproducto.unidad_medida}</div>
+                                            <div class="col-md-3">Meta Anual: ${subproducto.programacion_ceplan.meta_anual}</div>
+                                        </div>
+                                        <div class="table-responsive mt-2">
+                                            <table class="table table-sm table-bordered">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th style="width: 8%;">Fuente</th>
+                                                        <th style="width: 4%;">Tipo</th>
+                                                        ${months.map(m => `<th style="width: 4%;">${m.toUpperCase()}</th>`).join('')}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="align-middle text-success fw-bold" rowspan="2">CEPLAN</td>
+                                                        <td class="table-primary text-center fw-bold">P</td>
+                                                        ${months.map(month => `<td class="table-primary">${subproducto.programacion_ceplan.programado[month] || 0}</td>`).join('')}
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="table-warning text-center fw-bold">E</td>
+                                                        ${months.map(month => `<td class="table-warning">${subproducto.programacion_ceplan.ejecutado[month] || 0}</td>`).join('')}
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>`;
+                            }
+                        });
+                    });
+                });
+            }
+            
+            if (!hasCEPLANData) {
+                html += '<div class="alert alert-info">No se encontraron datos CEPLAN para este PPR.</div>';
+            }
+            
+            html += '</div></div>';
+            document.getElementById('ceplanData').innerHTML = html;
+            document.getElementById('ceplanLoading').style.display = 'none';
+            document.getElementById('ceplanData').style.display = 'block';
+        }
+
+        async function loadCarteraData() {
+            try {
+                document.getElementById('carteraLoading').style.display = 'block';
+                document.getElementById('carteraData').style.display = 'none';
+
+                const response = await callAPI('/cartera', 'GET');
+                
+                if (response && response.data && response.data.length > 0) {
+                    displayCarteraData(response.data);
+                } else {
+                    document.getElementById('carteraLoading').innerHTML = '<div class="alert alert-info">No hay datos de Cartera de Servicios cargados.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading Cartera data:', error);
+                document.getElementById('carteraLoading').innerHTML = `<div class="alert alert-danger">Error al cargar datos de Cartera: ${error.message}</div>`;
+            }
+        }
+
+        function displayCarteraData(carteraData) {
+            let html = '<div class="card"><div class="card-body">';
+            html += '<h4 class="card-title">Cartera de Servicios</h4>';
+            html += `<p class="card-text">Total de registros: ${carteraData.length}</p>`;
+            
+            if (carteraData.length > 0) {
+                html += '<div class="table-responsive"><table class="table table-striped table-hover"><thead class="table-dark"><tr>';
+                html += '<th>Programa Código</th><th>Programa Nombre</th>';
+                html += '<th>Producto Código</th><th>Producto Nombre</th>';
+                html += '<th>Actividad Código</th><th>Actividad Nombre</th>';
+                html += '<th>Sub Producto Código</th><th>Sub Producto Nombre</th>';
+                html += '<th>Trazador</th><th>Unidad Medida</th>';
+                html += '</tr></thead><tbody>';
+                
+                carteraData.forEach(item => {
+                    html += `<tr>
+                        <td>${item.programa_codigo || ''}</td>
+                        <td>${item.programa_nombre || ''}</td>
+                        <td>${item.producto_codigo || ''}</td>
+                        <td>${item.producto_nombre || ''}</td>
+                        <td>${item.actividad_codigo || ''}</td>
+                        <td>${item.actividad_nombre || ''}</td>
+                        <td>${item.sub_producto_codigo || ''}</td>
+                        <td>${item.sub_producto_nombre || ''}</td>
+                        <td>${item.trazador || ''}</td>
+                        <td>${item.unidad_medida || ''}</td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table></div>';
+            }
+            
+            html += '</div></div>';
+            document.getElementById('carteraData').innerHTML = html;
+            document.getElementById('carteraLoading').style.display = 'none';
+            document.getElementById('carteraData').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

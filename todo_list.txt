@@ -1,0 +1,255 @@
+B) TODO-LIST detallado (paso a paso, entregables y criterios)
+
+Nota: cada ítem contiene subtareas, entregable esperado y criterio de aceptación (QA).
+
+Fase 0 — Preparación del proyecto
+
+Crear repositorio y estructura básica
+
+Subtareas: crear repo (GitHub), ramas main, develop, feature/*.
+
+Entregable: README inicial, .gitignore, LICENSE, CODE_OF_CONDUCT.
+
+Criterio: Repositorio accesible, README con stack y cómo correr local.
+
+Config CI básico
+
+Subtareas: GitHub Actions con lint (flake8/black for py), tests run (pytest), build step.
+
+Entregable: workflow .github/workflows/ci.yml.
+
+Criterio: Push a develop desencadena CI y pasa en PR.
+
+Fase 1 — Modelado y DB (DER + migraciones)
+
+Diseño ERD final
+
+Subtareas: generar diagrama ERD (draw.io o similar) con entidades: ppr, producto, actividad, subproducto, programacion_ppr, programacion_ceplan, diferencia, usuario, asignacion, auditoria.
+
+Entregable: ERD en PNG/PDF.
+
+Criterio: Equipo confirma modelo; claves y relaciones validadas.
+
+Crear modelos ORM y migraciones
+
+Subtareas: SQLAlchemy/SQLModel models + Alembic migrations.
+
+Entregable: migraciones ejecutables y script alembic upgrade head.
+
+Criterio: BD local crea tablas sin errores.
+
+Fase 2 — Core Backend (Autenticación, Users, Roles)
+
+Auth y roles
+
+Subtareas: endpoints de login, JWT, middleware de roles, creación de seed admin user.
+
+Entregable: endpoints /auth/login, /users.
+
+Criterio: Admin puede crear usuarios y asignar roles; endpoints protegidos por token.
+
+Fase 3 — Módulo extractor (núcleo)
+
+Implementar parser PPR (extracción robusta)
+
+Subtareas:
+
+Leer Excel (pandas / openpyxl).
+
+Implementar búsqueda dinámica del nombre del PPR (primeras 20 filas).
+
+Implementar búsqueda dinámica de fila cabecera (regex tolerant).
+
+Mapear columnas dinámicamente (producto, actividad, subproducto, meses).
+
+Manejar celdas combinadas y propagación de valores.
+
+Generar JSON preview y warnings.
+
+Entregable: función parse_ppr(file) -> json_preview.
+
+Criterio: pasa tests unitarios con 6 variantes de Excel (ver test cases).
+
+Implementar parser CEPLAN
+
+Subtareas:
+
+Leer Excel plano.
+
+Extraer codigo_subproducto, nombre, prog_mes, ejec_mes.
+
+Normalizar códigos.
+
+Entregable: parse_ceplan(file) -> json_preview.
+
+Criterio: coincide con casos de prueba.
+
+UI mínimo: preview y mapeo
+
+Subtareas:
+
+Endpoint POST /upload/ppr guarda file y devuelve preview.
+
+UI para ver preview, editar mapeos de columnas si heurística falla.
+
+Botón “Commit” para persistir.
+
+Entregable: página de upload + preview + commit.
+
+Criterio: usuario puede corregir mapeo y persistir sin errores.
+
+Fase 4 — Persistencia y lógica de negocio
+
+Persistir estructura en BD
+
+Subtareas:
+
+Traducir JSON a inserciones (ppr → producto → actividad → subproducto → programacion).
+
+Manejar transacciones y rollback en errores.
+
+Registrar auditoría.
+
+Entregable: endpoint /extract/commit/{preview_id} que inserta.
+
+Criterio: datos visibles en consultas y dashboard.
+
+Funcionalidad: clonar estructura para nuevo año
+
+Subtareas:
+
+Endpoint para clonar PPR sin valores programado/ejecutado.
+
+Implementar distribución automática divisible entre 12.
+
+UI para ajuste manual de meses si no divisible.
+
+Entregable: página “Nuevo año” con clon y edición de programación anual.
+
+Criterio: responsable puede completar programación anual, y sistema valida reparto/divisibilidad.
+
+Fase 5 — Comparador y dashboards
+
+Motor de comparación PPR ↔ CEPLAN
+
+Subtareas:
+
+Matching por codigo_subproducto.
+
+Generar diferencias por mes y anual.
+
+Heurísticas fuzzy para mismatches y UI para validar coincidencias dudosas.
+
+Entregable: función compare(ppr_id, ceplan_id) -> diferencias.
+
+Criterio: resultados reproducibles y trazables (logs + auditoría).
+
+Dashboards y reportes
+
+Subtareas:
+
+Dashboard por PPR (KPI: %cumplimiento, alertas por subproducto).
+
+Reportes exportables (CSV/PDF) y vista tabular con semáforos (verde, amarillo, rojo).
+
+Entregable: UI dashboard responsive.
+
+Criterio: usuario con rol adecuado puede filtrar, exportar y ver métricas.
+
+Fase 6 — Actualizaciones mensuales y workflow
+
+Workflow de actualización mensual
+
+Subtareas:
+
+Endpoint PUT /ppr/{id}/monthly-update para responsable.
+
+Validaciones: no sobrescribir programación si no habilitado por presupuesto.
+
+Historial de cambios por usuario.
+
+Entregable: UI de edición mensual con control de cambios.
+
+Criterio: modificaciones quedan registradas en auditoria.
+
+Notificaciones y alertas
+
+Subtareas:
+
+Enviar alertas (email/ UI) cuando avance < threshold.
+
+Crear tareas/observaciones para responsables.
+
+Entregable: sistema de notificaciones básico.
+
+Criterio: pruebas integradas de notificación.
+
+Fase 7 — Calidad, pruebas y seguridad
+
+Tests unitarios e integración
+
+Subtareas:
+
+Unit tests para parser (ppr/ceplan), normalizador, comparador.
+
+Integration tests: upload → preview → commit → compare.
+
+Entregable: suite pytest con cobertura mínima (definir objetivo).
+
+Criterio: PR no pasa si tests fallan.
+
+Revisión de seguridad
+
+Subtareas:
+
+Validar inyección de SQL, validación de archivos (size/type), XSS en frontend.
+
+Aplicar rate limiting y CORS.
+
+Entregable: checklist de seguridad y fixes aplicados.
+
+Criterio: auditoría básica satisfecha.
+
+Fase 8 — Entrega y aceptación final
+
+Demostración y pruebas de aceptación
+
+Subtareas: sesión demo con stakeholders; checklist de aceptación.
+
+Entregable: sign-off del cliente.
+
+Criterio: todas las historias críticas marcadas como “Done”.
+
+C) Casos de prueba (edge cases) que el equipo debe cubrir
+
+Excel con cabeceras en posiciones distintas / celdas combinadas.
+
+Cabecera PROGRAMA PRESUPUESTAL: escrita con variaciones (PROGRAMA PRESUP., PPR).
+
+Subproductos con prefijos y varios códigos concatenados (AOI... - 0087901 - NAME).
+
+Metas anuales no numéricas o con comas/puntos.
+
+Cronograma con solo “Programado” o solo “Ejecutado”, o con ambos en diferentes formatos.
+
+Archivo CEPLAN que tiene códigos que no existen en PPR (crear lista para revisión).
+
+Archivo Excel corrupto / password-protected → retorno de error amigable.
+
+Archivo con meses en nombres completos (enero) y/o abreviados (ene).
+
+D) Criterios de aceptación final (resumen)
+
+El sistema importa ambos tipos de Excel, detecta PPR y mapea columnas dinámicamente sin intervención para >80% de archivos de prueba.
+
+El preview muestra warnings y permite mapeo manual antes de persistir.
+
+Persistencia en PostgreSQL con auditoría y versionado por año.
+
+Matching CEPLAN ↔ PPR por codigo_subproducto y reporte de diferencias mensual/anual.
+
+Responsables pueden actualizar ejecuciones mensuales y sistema guarda histórico.
+
+UI responsive y accesible, con dashboards y export de reportes.
+
+Tests automatizados y CI funcionando; deploy containerizado.

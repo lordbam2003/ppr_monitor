@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - Sistema de Monitoreo PPR</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/static/css/fontawesome.min.css">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="/static/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Monitor PPR
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ppr"><i class="fas fa-table me-1"></i> PPRs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/transversal_data"><i class="fas fa-layer-group me-1"></i> Datos Transversales</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users"><i class="fas fa-users me-1"></i> Usuarios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-chart-bar me-1"></i> Reportes</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login"><i class="fas fa-user-circle me-1"></i> Iniciar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h1><i class="fas fa-chart-bar me-2"></i>Reportes y Comparaciones</h1>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fas fa-file-upload" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title mt-3">Subir CEPLAN</h5>
+                        <p class="card-text">Cargar archivo CEPLAN para comparación</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadCeplanModal">Subir CEPLAN</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fas fa-balance-scale" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title mt-3">Comparativo PPR-CEPLAN</h5>
+                        <p class="card-text">Diferencias entre PPR y CEPLAN</p>
+                        <button class="btn btn-success" onclick="generateComparisonReport()">Comparar</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fas fa-download" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title mt-3">Exportar Datos</h5>
+                        <p class="card-text">Exportar reportes en diferentes formatos</p>
+                        <button class="btn btn-info" onclick="exportReport()">Exportar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i> Últimos Reportes Generados</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Tipo de Reporte</th>
+                                <th>Fecha</th>
+                                <th>Periodo</th>
+                                <th>Generado por</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportsTableBody">
+                            <tr>
+                                <td>Comparativo PPR vs CEPLAN</td>
+                                <td>2023-10-01 10:30</td>
+                                <td>Ene-Sep 2023</td>
+                                <td>admin</td>
+                                <td><span class="badge bg-success">Completado</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary me-1" onclick="viewReport(1)">Ver</button>
+                                    <button class="btn btn-sm btn-info" onclick="downloadReport(1)">Descargar</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Reporte Mensual Octubre</td>
+                                <td>2023-10-01 09:15</td>
+                                <td>Oct 2023</td>
+                                <td>juan.perez</td>
+                                <td><span class="badge bg-success">Completado</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary me-1" onclick="viewReport(2)">Ver</button>
+                                    <button class="btn btn-sm btn-info" onclick="downloadReport(2)">Descargar</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Diferencias Críticas</td>
+                                <td>2023-09-30 16:45</td>
+                                <td>Agosto 2023</td>
+                                <td>maria.gomez</td>
+                                <td><span class="badge bg-warning">Procesando</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary me-1" onclick="viewReport(3)">Ver</button>
+                                    <button class="btn btn-sm btn-info" onclick="downloadReport(3)">Descargar</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- CEPLAN Upload Modal -->
+        <div class="modal fade" id="uploadCeplanModal" tabindex="-1" aria-labelledby="uploadCeplanModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="uploadCeplanModalLabel">Subir Archivo CEPLAN</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="uploadCeplanForm">
+                            <div class="mb-3">
+                                <label for="ceplanFile" class="form-label">Seleccionar archivo CEPLAN</label>
+                                <input type="file" class="form-control" id="ceplanFile" accept=".xlsx,.xls" required>
+                                <div class="form-text">Formato permitido: Excel (.xlsx, .xls). Tamaño máximo: 100MB</div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="uploadCeplanBtn">Subir Archivo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Detail Modal -->
+        <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="reportModalLabel">Detalle del Reporte</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="reportContent">
+                            <div class="alert alert-info">
+                                <h4>Visualización del Reporte</h4>
+                                <p>Este panel mostraría el contenido detallado del reporte seleccionado.</p>
+                                <p>En una implementación completa, aquí se mostrarían gráficos, tablas comparativas y análisis detallado.</p>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Resumen Ejecutivo</h5>
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="row text-center">
+                                                <div class="col-4">
+                                                    <div class="border p-3">
+                                                        <h3 class="text-primary">12</h3>
+                                                        <p class="text-muted">PPRs Monitoreados</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="border p-3">
+                                                        <h3 class="text-success">85%</h3>
+                                                        <p class="text-muted">Ejecución Promedio</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <div class="border p-3">
+                                                        <h3 class="text-danger">3</h3>
+                                                        <p class="text-muted">Alertas Activas</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Distribución por Estado</h5>
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <canvas id="statusChart" height="200"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h5 class="mt-4">Diferencias Críticas</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Código Subproducto</th>
+                                            <th>Nombre Subproducto</th>
+                                            <th>Diferencia</th>
+                                            <th>Mes</th>
+                                            <th>Tipo</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>0087901</td>
+                                            <td>MONITOREO DEL PROGRAMA...</td>
+                                            <td class="text-danger">-25.4%</td>
+                                            <td>Septiembre</td>
+                                            <td>Programación</td>
+                                            <td><span class="badge bg-danger">Alta</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>0087902</td>
+                                            <td>EJECUCIÓN DE ACCIONES...</td>
+                                            <td class="text-danger">-18.2%</td>
+                                            <td>Septiembre</td>
+                                            <td>Ejecución</td>
+                                            <td><span class="badge bg-warning">Media</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn btn-success" onclick="exportReport()">Exportar PDF</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Sistema de Monitoreo PPR</h5>
+                    <p>Plataforma para el seguimiento de Programas Presupuestales (PPR) y CEPLAN</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Contacto</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> soporte@monitorppr.com</li>
+                        <li><i class="fas fa-phone me-2"></i> +57 123 456 7890</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <small>&copy; 2023 Sistema de Monitoreo PPR. Todos los derechos reservados.</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="/static/js/sweetalert2.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Reports functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize charts if Chart.js is available
+            initCharts();
+        });
+
+        function initCharts() {
+            // This would initialize actual charts if Chart.js was included
+            // For now, just a placeholder
+        }
+
+        function generateMonthlyReport() {
+            Swal.fire({
+                title: 'Generar Reporte Mensual',
+                html: `
+                    <div class="text-start">
+                        <p>Seleccione el mes y año para generar el reporte mensual:</p>
+                        <div class="mb-3">
+                            <label for="reportMonth" class="form-label">Mes</label>
+                            <select class="form-control" id="reportMonth">
+                                <option value="1">Enero</option>
+                                <option value="2">Febrero</option>
+                                <option value="3">Marzo</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Mayo</option>
+                                <option value="6">Junio</option>
+                                <option value="7">Julio</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Septiembre</option>
+                                <option value="10" selected>Octubre</option>
+                                <option value="11">Noviembre</option>
+                                <option value="12">Diciembre</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reportYear" class="form-label">Año</label>
+                            <input type="number" class="form-control" id="reportYear" value="2023">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Generar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#0d6efd'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const month = document.getElementById('reportMonth').value;
+                    const year = document.getElementById('reportYear').value;
+                    // Simulate API call to generate report
+                    simulateApiCall(() => {
+                        showSuccess(`Reporte mensual generado para ${month}/${year}`);
+                    });
+                }
+            });
+        }
+
+        function generateComparisonReport() {
+            Swal.fire({
+                title: 'Comparativo PPR vs CEPLAN',
+                html: `
+                    <div class="text-start">
+                        <p>Seleccione los PPR para comparar con CEPLAN:</p>
+                        <div class="mb-3">
+                            <label for="pprSelect" class="form-label">Seleccionar PPR</label>
+                            <select class="form-control" id="pprSelect">
+                                <option value="">Todos los PPR</option>
+                                <option value="001">001 - INFRAESTRUCTURA ESCOLAR</option>
+                                <option value="002" selected>002 - SALUD MATERNO NEONATAL</option>
+                                <option value="003">003 - SEGURIDAD ALIMENTARIA</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="periodSelect" class="form-label">Periodo</label>
+                            <select class="form-control" id="periodSelect">
+                                <option value="yearly">Anual</option>
+                                <option value="last_quarter">Último Trimestre</option>
+                                <option value="last_month" selected>Último Mes</option>
+                            </select>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Comparar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#0d6efd'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Simulate API call to generate comparison report
+                    simulateApiCall(() => {
+                        showSuccess('Reporte comparativo generado exitosamente');
+                    });
+                }
+            });
+        }
+
+        function exportReport() {
+            Swal.fire({
+                title: 'Exportar Reporte',
+                text: 'Seleccione el formato para exportar el reporte',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'PDF',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Simulate API call to export report
+                    simulateApiCall(() => {
+                        showSuccess('Reporte exportado exitosamente');
+                    });
+                }
+            });
+        }
+
+        function viewReport(reportId) {
+            // In real implementation, this would fetch report details from the backend
+            // For now, we'll just show a confirmation message via SweetAlert2
+            Swal.fire({
+                title: 'Visualizando Reporte',
+                text: `Cargando detalles del reporte ID: ${reportId}`,
+                icon: 'info',
+                confirmButtonText: 'Aceptar',
+                confirmButtonColor: '#0d6efd'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show the report modal after confirmation
+                    const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+                    modal.show();
+                }
+            });
+        }
+
+        function downloadReport(reportId) {
+            Swal.fire({
+                title: 'Confirmar Descarga',
+                text: `¿Desea descargar el reporte ID: ${reportId}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, descargar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#28a745'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Simulate API call to download report
+                    simulateApiCall(() => {
+                        showSuccess('Descarga iniciada');
+                    });
+                }
+            });
+        }
+        
+        async function uploadCeplanFile() {
+            const fileInput = document.getElementById('ceplanFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showError('Por favor seleccione un archivo');
+                return;
+            }
+
+            try {
+                showLoading('Subiendo y procesando archivo CEPLAN...');
+                const result = await callAPIWithFile('/upload/ceplan', file);
+                
+                if (result && result.preview_id) {
+                    showSuccess('Archivo CEPLAN subido y procesado exitosamente. Redirigiendo a la vista previa...');
+                    
+                    // Close the upload modal
+                    document.getElementById('uploadCeplanModal').querySelector('.btn-close').click();
+                    document.getElementById('uploadCeplanForm').reset();
+                    
+                    // Redirect to the preview page with the preview ID
+                    setTimeout(() => {
+                        window.location.href = `/preview?id=${result.preview_id}`;
+                    }, 1500);
+                } else {
+                    showSuccess('Archivo CEPLAN subido exitosamente');
+                    document.getElementById('uploadCeplanModal').querySelector('.btn-close').click();
+                    document.getElementById('uploadCeplanForm').reset();
+                }
+            } catch (error) {
+                console.error('Error uploading CEPLAN file:', error);
+                hideLoading();
+                // Error is already handled by callAPIWithFile function
+            }
+        }
+
+        function showLoading(text = 'Procesando...') {
+            Swal.fire({
+                title: text,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+
+        function hideLoading() {
+            Swal.close();
+        }
+
+        // Helper function to simulate API call with loading indicator
+        function simulateApiCall(callback) {
+            // Show loading state
+            Swal.fire({
+                title: 'Procesando...',
+                text: 'Por favor espere mientras se procesa su solicitud',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Simulate API delay
+            setTimeout(() => {
+                // Close the loading state and execute callback
+                Swal.close();
+                callback();
+            }, 1500);
+        }
+
+        // Event listeners for CEPLAN upload
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadBtn = document.getElementById('uploadCeplanBtn');
+            if (uploadBtn) {
+                uploadBtn.addEventListener('click', uploadCeplanFile);
+            }
+        });
+    </script>
+</body>
+</html>

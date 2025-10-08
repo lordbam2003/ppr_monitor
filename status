@@ -1,0 +1,69 @@
+# Estado del Proyecto - Sistema de Monitoreo PPR
+
+## Fecha: lunes, 6 de octubre de 2025
+
+## Estado Actual del Proyecto
+
+### Scripts para Windows
+- [x] `install.bat` - Instalación de dependencias en Windows
+- [x] `start.bat` - Iniciar la aplicación en Windows  
+- [x] `init_db.bat` - Inicializar base de datos en Windows
+- [x] Scripts alternativos con compatibilidad bcrypt directo
+
+### Base de Datos
+- [x] Compatibilidad con Windows (sin cliente mysql requerido)
+- [x] Inicialización con Alembic
+- [x] Creación de usuario administrador
+- [x] Corrección de inconsistencias de roles
+- [x] Corrección de problemas de hashing de contraseñas
+
+### Autenticación y Autorización
+- [x] Resuelto problema de incompatibilidad bcrypt/passlib
+- [x] Funciones de hashing/verificación corregidas
+- [x] Sistema de roles corregido
+- [x] Token JWT funcionando correctamente
+
+### Funcionalidades
+- [x] Login/logout funcionando
+- [x] Acceso a páginas protegidas (PPR, Usuarios, Reportes)
+- [x] Carga de archivos PPR y CEPLAN
+- [x] Gestión de usuarios y roles
+- [x] Visualización de datos PPR
+- [x] Funciones de UI (loading, mensajes) corregidas
+
+## Problemas Resueltos
+1. Incompatibilidad entre bcrypt y passlib en Windows
+2. Problemas de hashing de contraseñas > 72 bytes
+3. Inconsistencias en valores de roles en base de datos
+4. Problemas de verificación de contraseñas
+5. Adaptación de scripts para Windows
+6. Error de función no definida: hideLoading
+7. Error de función no definida: initializeAuth
+8. Error de validación de roles en endpoint /me
+9. Error de importación de InternalRoleEnum en módulos
+
+## Próximos Pasos
+- Pruebas completas de funcionalidades
+- Validación de la interfaz de usuario
+- Implementación de características adicionales según requerimientos
+
+## Cambios Realizados - 07/10/2025
+- Mejora en la extracción de datos PPR
+- Corrección de importaciones (RoleEnum -> InternalRoleEnum)
+- Actualización del servicio de extracción para manejar estructura jerárquica completa
+- Ajustes en la validación de datos de entrada
+- Mejora en la detección de información del PPR desde archivos Excel
+- Implementación de normalización de texto para comparación de nombres (sin distinción de mayúsculas/minúsculas, sin tildes)
+- Uso de archivo de referencia ppr.txt para identificación precisa de PPRs
+- Corrección del problema donde se mostraba información incorrecta en la vista previa
+- Implementación de detección dinámica de columnas (cod.prod, producto, actividad, cod.sub producto, subproducto)
+- Implementación de detección automática de posición de meses y valores de programado/ejecutado
+- Extracción más flexible basada en localización de headers en lugar de posiciones fijas
+- Agregado método de extracción por defecto como fallback cuando la detección dinámica falla
+
+## Cambios Realizados - 07/10/2025 (Cartera de Servicios)
+- Corrección de visualización de datos en vista previa de cartera de servicios
+- Añadida línea para hacer visible el contenedor de datos en preview.js
+- Corrección de redirección post-confirmación (ahora redirige a /transversal_data en lugar de /cartera)
+- Arreglo de problema en endpoint de confirmación para pasar correctamente la estructura de datos al servicio de almacenamiento
+- Datos de cartera ahora se guardan correctamente en base de datos y son visibles en la pestaña correspondiente

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Monitoreo PPR</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/static/css/fontawesome.min.css">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="/static/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Monitor PPR
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"><i class="fas fa-home me-1"></i> Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/ppr"><i class="fas fa-table me-1"></i> PPRs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/transversal_data"><i class="fas fa-layer-group me-1"></i> Datos Transversales</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users"><i class="fas fa-users me-1"></i> Usuarios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/reports"><i class="fas fa-chart-bar me-1"></i> Reportes</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login"><i class="fas fa-user-circle me-1"></i> Iniciar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="p-5 bg-light rounded-3 text-center">
+                    <h1 class="display-5 fw-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i> Sistema de Monitoreo PPR
+                    </h1>
+                    <p class="lead">
+                        Plataforma para el seguimiento y monitoreo de Programas Presupuestales (PPR) y CEPLAN
+                    </p>
+                    <hr class="my-4">
+                    <p>
+                        Bienvenido al sistema de monitoreo de PPR. Utilice el menú superior para navegar a través de las diferentes funcionalidades del sistema.
+                    </p>
+                    <button class="btn btn-primary btn-lg" type="button" onclick="showDashboard()">
+                        <i class="fas fa-tachometer-alt me-1"></i> Ir al Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fas fa-table" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title mt-3">Gestión de PPRs</h5>
+                        <p class="card-text">Administre y supervise los diferentes Programas Presupuestales.</p>
+                        <a href="/ppr" class="btn btn-outline-primary">Ver PPRs</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fas fa-users" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title mt-3">Usuarios</h5>
+                        <p class="card-text">Gestión de usuarios y roles del sistema.</p>
+                        <a href="/users" class="btn btn-outline-success">Gestionar Usuarios</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fas fa-chart-bar" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title mt-3">Reportes</h5>
+                        <p class="card-text">Generación y visualización de reportes.</p>
+                        <a href="/reports" class="btn btn-outline-info">Ver Reportes</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i> Últimas Actividades</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Usuario</th>
+                                        <th>Acción</th>
+                                        <th>Detalle</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activitiesTableBody">
+                                    <!-- Data will be loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Sistema de Monitoreo PPR</h5>
+                    <p>Plataforma para el seguimiento de Programas Presupuestales (PPR) y CEPLAN</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Contacto</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> soporte@monitorppr.com</li>
+                        <li><i class="fas fa-phone me-2"></i> +57 123 456 7890</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <small>&copy; 2023 Sistema de Monitoreo PPR. Todos los derechos reservados.</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="/static/js/sweetalert2.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Load recent activities when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRecentActivities();
+        });
+
+        async function loadRecentActivities() {
+            try {
+                // This would normally fetch from an API endpoint
+                // For now, we'll use mock data
+                const mockActivities = [
+                    {
+                        fecha: '2023-10-01 10:30',
+                        usuario: 'admin',
+                        accion: 'Creación',
+                        detalle: 'Nuevo PPR registrado: "Infraestructura Escolar"'
+                    },
+                    {
+                        fecha: '2023-10-01 09:15',
+                        usuario: 'juan.perez',
+                        accion: 'Actualización',
+                        detalle: 'Modificado estado del PPR "Salud Pública"'
+                    },
+                    {
+                        fecha: '2023-09-30 16:45',
+                        usuario: 'maria.gomez',
+                        accion: 'Lectura',
+                        detalle: 'Consulta reporte mensual PPR'
+                    }
+                ];
+
+                const tbody = document.getElementById('activitiesTableBody');
+                tbody.innerHTML = '';
+                
+                mockActivities.forEach(activity => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${activity.fecha}</td>
+                        <td>${activity.usuario}</td>
+                        <td><span class="badge bg-info">${activity.accion}</span></td>
+                        <td>${activity.detalle}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading activities:', error);
+                // Show static data as fallback
+                const tbody = document.getElementById('activitiesTableBody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td>2023-10-01 10:30</td>
+                        <td>admin</td>
+                        <td><span class="badge bg-info">Creación</span></td>
+                        <td>Nuevo PPR registrado: "Infraestructura Escolar"</td>
+                    </tr>
+                    <tr>
+                        <td>2023-10-01 09:15</td>
+                        <td>juan.perez</td>
+                        <td><span class="badge bg-info">Actualización</span></td>
+                        <td>Modificado estado del PPR "Salud Pública"</td>
+                    </tr>
+                    <tr>
+                        <td>2023-09-30 16:45</td>
+                        <td>maria.gomez</td>
+                        <td><span class="badge bg-info">Lectura</span></td>
+                        <td>Consulta reporte mensual PPR</td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // Update the performAction function to use SweetAlert2 for navigation confirmation if needed
+        // Override the existing function from main.js if needed for specific behavior
+        const originalPerformAction = window.performAction;
+        window.performAction = function(action) {
+            switch(action) {
+                case 'view-ppr':
+                    window.location.href = '/ppr';
+                    break;
+                case 'manage-users':
+                    // Verificar autenticación y permisos
+                    if (getAuthToken()) {
+                        window.location.href = '/users';
+                    } else {
+                        showLoginPrompt();
+                    }
+                    break;
+                case 'view-reports':
+                    window.location.href = '/reports';
+                    break;
+                default:
+                    if (originalPerformAction) {
+                        originalPerformAction(action);
+                    }
+                    console.log('Acción desconocida:', action);
+            }
+        };
+    </script>
+</body>
+</html>
