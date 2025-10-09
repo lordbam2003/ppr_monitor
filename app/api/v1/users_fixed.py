@@ -19,36 +19,22 @@ def is_admin_role(role_value) -> bool:
     Check if the role value corresponds to an admin role
     Handles both new enum values and old display names
     """
-    # Convert to string to handle both enum and string values
-    role_str = str(role_value).lower()
-    
     admin_values = {
         'admin', 
-        'administrador', 
-        'adminstrador',  # typo that might exist in db
-        'administrator'
+        'Admin', 
+        'ADMIN', 
+        'Administrador', 
+        'ADMINISTRADOR',
+        'administrador'
     }
-    
-    # Check if it's any of the admin values (case-insensitive)
-    if role_str in admin_values:
-        return True
-    # Check if it's the enum value
-    try:
-        if role_value == InternalRoleEnum.admin:
-            return True
-        # Additional check: see if the enum value matches when converted to string
-        if role_str == str(InternalRoleEnum.admin).lower():
-            return True
-    except:
-        pass  # In case role_value isn't an enum, continue with string check
-    
-    return False
+    return str(role_value).lower() in [v.lower() for v in admin_values] or role_value == InternalRoleEnum.admin
 
 
 def check_admin(user: User) -> None:
     """
     Verificar si el usuario tiene rol de administrador
     """
+    # Check using both the enum value and possible string representations
     if not is_admin_role(user.rol):
         logger.warning(f"User {user.nombre} ({user.email}) attempted to access admin functionality without proper permissions. Role: {user.rol}")
         raise HTTPException(
@@ -127,7 +113,7 @@ async def create_user(
     new_user = User(
         nombre=user_data.nombre,
         email=user_data.email,
-        rol=user_data.rol,
+        rol=user_data.rol,  # This should now be a proper InternalRoleEnum value
         hashed_password=hashed_password,
     )
     
