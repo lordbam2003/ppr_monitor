@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from . import auth, users, files, ppr, asignaciones, cartera
+from . import auth, users, files, ppr, asignaciones, cartera, comparison
 
 
 api_router = APIRouter()
@@ -21,3 +21,6 @@ api_router.include_router(files.router, prefix="/upload", tags=["files"])
 
 # Incluir rutas de cartera de servicios (protegidas)
 api_router.include_router(cartera.router, prefix="/cartera", tags=["cartera"])
+
+# Incluir rutas de comparación PPR-CEPLAN (protegidas)
+api_router.include_router(comparison.router, prefix="/comparison", tags=["comparison"])

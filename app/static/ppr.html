@@ -471,6 +471,9 @@
                                 <button class="btn btn-sm btn-primary me-1" onclick="viewPPR(${ppr.id_ppr})">
                                     <i class="fas fa-eye"></i>
                                 </button>
+                                <button class="btn btn-sm btn-success me-1" onclick="runComparison(${ppr.id_ppr}, '${ppr.nombre_ppr}')" title="Comparar PPR con CEPLAN">
+                                    <i class="fas fa-balance-scale"></i>
+                                </button>
                                 <button class="btn btn-sm btn-warning me-1" onclick="editPPR(${ppr.id_ppr})">
                                     <i class="fas fa-edit"></i>
                                 </button>
@@ -618,17 +621,152 @@
                 document.getElementById('ceplanLoading').style.display = 'block';
                 document.getElementById('ceplanData').style.display = 'none';
 
-                // For now, we'll display a message since we don't have an endpoint to get all CEPLAN data
-                // In the future, you could create an endpoint that returns all CEPLAN data
-                document.getElementById('ceplanLoading').innerHTML = `
-                    <div class="alert alert-info text-center">
-                        <p>La visualización de todos los datos CEPLAN no está implementada aún.</p>
-                        <p>Los datos CEPLAN se visualizan actualmente en la vista detallada de cada PPR.</p>
-                    </div>`;
+                const response = await callAPI('/pprs/data/ceplan-all', 'GET');
+                
+                if (response && response.data && response.data.length > 0) {
+                    displayCEPLANData(response.data);
+                } else {
+                    document.getElementById('ceplanLoading').innerHTML = '<div class="alert alert-info text-center">No hay datos CEPLAN cargados.</div>';
+                }
             } catch (error) {
                 console.error('Error loading CEPLAN data:', error);
                 document.getElementById('ceplanLoading').innerHTML = `<div class="alert alert-danger text-center">Error al cargar datos CEPLAN: ${error.message}</div>`;
             }
+        }
+
+        function displayCEPLANData(data) {
+            // Group data by subproducto
+            const groupedData = {};
+            data.forEach(item => {
+                const key = `${item.id_subproducto}-${item.anio}`;
+                if (!groupedData[key]) {
+                    groupedData[key] = {
+                        codigo_subproducto: item.codigo_subproducto,
+                        nombre_subproducto: item.nombre_subproducto,
+                        anio: item.anio,
+                        subproducto_id: item.id_subproducto,
+                        prog_ene: item.prog_ene,
+                        ejec_ene: item.ejec_ene,
+                        prog_feb: item.prog_feb,
+                        ejec_feb: item.ejec_feb,
+                        prog_mar: item.prog_mar,
+                        ejec_mar: item.ejec_mar,
+                        prog_abr: item.prog_abr,
+                        ejec_abr: item.ejec_abr,
+                        prog_may: item.prog_may,
+                        ejec_may: item.ejec_may,
+                        prog_jun: item.prog_jun,
+                        ejec_jun: item.ejec_jun,
+                        prog_jul: item.prog_jul,
+                        ejec_jul: item.ejec_jul,
+                        prog_ago: item.prog_ago,
+                        ejec_ago: item.ejec_ago,
+                        prog_sep: item.prog_sep,
+                        ejec_sep: item.ejec_sep,
+                        prog_oct: item.prog_oct,
+                        ejec_oct: item.ejec_oct,
+                        prog_nov: item.prog_nov,
+                        ejec_nov: item.ejec_nov,
+                        prog_dic: item.prog_dic,
+                        ejec_dic: item.ejec_dic
+                    };
+                }
+            });
+            
+            // Convert grouped data to array
+            const groupedArray = Object.values(groupedData);
+            
+            // Create a table to display CEPLAN data
+            let html = `
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th rowspan="2">Código</th>
+                            <th rowspan="2">Subproducto</th>
+                            <th colspan="2" class="text-center">Ene</th>
+                            <th colspan="2" class="text-center">Feb</th>
+                            <th colspan="2" class="text-center">Mar</th>
+                            <th colspan="2" class="text-center">Abr</th>
+                            <th colspan="2" class="text-center">May</th>
+                            <th colspan="2" class="text-center">Jun</th>
+                            <th colspan="2" class="text-center">Jul</th>
+                            <th colspan="2" class="text-center">Ago</th>
+                            <th colspan="2" class="text-center">Sep</th>
+                            <th colspan="2" class="text-center">Oct</th>
+                            <th colspan="2" class="text-center">Nov</th>
+                            <th colspan="2" class="text-center">Dic</th>
+                        </tr>
+                        <tr>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                            <th class="text-center">Prog</th>
+                            <th class="text-center">Ejec</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            // Limit to first 50 records to prevent performance issues
+            const recordsToShow = groupedArray.length > 50 ? groupedArray.slice(0, 50) : groupedArray;
+            
+            recordsToShow.forEach(item => {
+                html += `<tr>
+                    <td><strong>${item.codigo_subproducto || ''}</strong></td>
+                    <td>${item.nombre_subproducto || ''}</td>
+                    <td class="text-end">${item.prog_ene !== null && item.prog_ene !== undefined ? parseFloat(item.prog_ene).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_ene !== null && item.ejec_ene !== undefined ? parseFloat(item.ejec_ene).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_feb !== null && item.prog_feb !== undefined ? parseFloat(item.prog_feb).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_feb !== null && item.ejec_feb !== undefined ? parseFloat(item.ejec_feb).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_mar !== null && item.prog_mar !== undefined ? parseFloat(item.prog_mar).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_mar !== null && item.ejec_mar !== undefined ? parseFloat(item.ejec_mar).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_abr !== null && item.prog_abr !== undefined ? parseFloat(item.prog_abr).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_abr !== null && item.ejec_abr !== undefined ? parseFloat(item.ejec_abr).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_may !== null && item.prog_may !== undefined ? parseFloat(item.prog_may).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_may !== null && item.ejec_may !== undefined ? parseFloat(item.ejec_may).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_jun !== null && item.prog_jun !== undefined ? parseFloat(item.prog_jun).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_jun !== null && item.ejec_jun !== undefined ? parseFloat(item.ejec_jun).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_jul !== null && item.prog_jul !== undefined ? parseFloat(item.prog_jul).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_jul !== null && item.ejec_jul !== undefined ? parseFloat(item.ejec_jul).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_ago !== null && item.prog_ago !== undefined ? parseFloat(item.prog_ago).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_ago !== null && item.ejec_ago !== undefined ? parseFloat(item.ejec_ago).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_sep !== null && item.prog_sep !== undefined ? parseFloat(item.prog_sep).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_sep !== null && item.ejec_sep !== undefined ? parseFloat(item.ejec_sep).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_oct !== null && item.prog_oct !== undefined ? parseFloat(item.prog_oct).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_oct !== null && item.ejec_oct !== undefined ? parseFloat(item.ejec_oct).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_nov !== null && item.prog_nov !== undefined ? parseFloat(item.prog_nov).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_nov !== null && item.ejec_nov !== undefined ? parseFloat(item.ejec_nov).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.prog_dic !== null && item.prog_dic !== undefined ? parseFloat(item.prog_dic).toFixed(2) : ''}</td>
+                    <td class="text-end">${item.ejec_dic !== null && item.ejec_dic !== undefined ? parseFloat(item.ejec_dic).toFixed(2) : ''}</td>
+                </tr>`;
+            });
+            
+            html += `</tbody></table>
+                ${data.length > 50 ? `<div class="alert alert-info mt-3">Se muestran los primeros 50 de ${data.length} registros. Total de registros: ${data.length}</div>` : ''}
+            </div>`;
+
+            document.getElementById('ceplanData').innerHTML = html;
+            document.getElementById('ceplanLoading').style.display = 'none';
+            document.getElementById('ceplanData').style.display = 'block';
         }
 
         async function uploadPPRFile() {
@@ -873,6 +1011,37 @@
             } catch (error) {
                 console.error("Error unassigning user:", error);
             }
+        }
+
+        async function runComparison(pprId, pprName) {
+            try {
+                showLoading(`Ejecutando comparación para PPR: ${pprName}...`);
+                
+                const result = await callAPI(`/comparison/ppr/${pprId}/compare`, 'POST');
+                
+                hideLoading();
+                
+                Swal.fire({
+                    title: 'Comparación completada',
+                    html: `<p>${result.message}</p><p>Se procesaron ${result.total_differences} registros de diferencia.</p>`,
+                    icon: 'success',
+                    confirmButtonText: 'Ver resultados'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Redirect to a comparison results page or open a modal with results
+                        viewComparisonResults(pprId);
+                    }
+                });
+            } catch (error) {
+                console.error('Error running comparison:', error);
+                hideLoading();
+                showError(`Error al ejecutar la comparación: ${error.message || error}`);
+            }
+        }
+
+        async function viewComparisonResults(pprId) {
+            // This function could open a modal or redirect to a detailed comparison page
+            window.location.href = `/ppr_detalle?id=${pprId}#comparison`;
         }
 
     </script>

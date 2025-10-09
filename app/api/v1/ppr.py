@@ -702,3 +702,75 @@ async def create_ppr_from_cartera(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al crear el PPR a partir de Cartera: {str(e)}"
         )
+
+
+@router.get("/data/ceplan-all")
+async def get_all_ceplan_data(
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """
+    Endpoint para obtener todos los datos CEPLAN
+    """
+    try:
+        logger.info(f"User {current_user.nombre} ({current_user.email}) requesting all CEPLAN data")
+        
+        # Join CEPLAN data with subproductos to get more information
+        from app.models.ppr import Subproducto
+        
+        # Get all CEPLAN data with related subproduct info
+        ceplan_records = session.exec(
+            select(ProgramacionCEPLAN, Subproducto)
+            .join(Subproducto, ProgramacionCEPLAN.id_subproducto == Subproducto.id_subproducto)
+        ).all()
+        
+        # Format the data for output
+        ceplan_data = []
+        for ceplan_record, subproducto in ceplan_records:
+            ceplan_dict = {
+                "id_prog_ceplan": ceplan_record.id_prog_ceplan,
+                "id_subproducto": ceplan_record.id_subproducto,
+                "codigo_subproducto": subproducto.codigo_subproducto,
+                "nombre_subproducto": subproducto.nombre_subproducto,
+                "anio": ceplan_record.anio,
+                "prog_ene": ceplan_record.prog_ene,
+                "ejec_ene": ceplan_record.ejec_ene,
+                "prog_feb": ceplan_record.prog_feb,
+                "ejec_feb": ceplan_record.ejec_feb,
+                "prog_mar": ceplan_record.prog_mar,
+                "ejec_mar": ceplan_record.ejec_mar,
+                "prog_abr": ceplan_record.prog_abr,
+                "ejec_abr": ceplan_record.ejec_abr,
+                "prog_may": ceplan_record.prog_may,
+                "ejec_may": ceplan_record.ejec_may,
+                "prog_jun": ceplan_record.prog_jun,
+                "ejec_jun": ceplan_record.ejec_jun,
+                "prog_jul": ceplan_record.prog_jul,
+                "ejec_jul": ceplan_record.ejec_jul,
+                "prog_ago": ceplan_record.prog_ago,
+                "ejec_ago": ceplan_record.ejec_ago,
+                "prog_sep": ceplan_record.prog_sep,
+                "ejec_sep": ceplan_record.ejec_sep,
+                "prog_oct": ceplan_record.prog_oct,
+                "ejec_oct": ceplan_record.ejec_oct,
+                "prog_nov": ceplan_record.prog_nov,
+                "ejec_nov": ceplan_record.ejec_nov,
+                "prog_dic": ceplan_record.prog_dic,
+                "ejec_dic": ceplan_record.ejec_dic,
+                "fecha_creacion": ceplan_record.fecha_creacion.isoformat() if ceplan_record.fecha_creacion else None,
+                "fecha_actualizacion": ceplan_record.fecha_actualizacion.isoformat() if ceplan_record.fecha_actualizacion else None
+            }
+            ceplan_data.append(ceplan_dict)
+        
+        logger.info(f"Successfully retrieved {len(ceplan_data)} CEPLAN records for user {current_user.email}")
+        return {
+            "data": ceplan_data,
+            "total_count": len(ceplan_data),
+            "message": "Datos CEPLAN obtenidos exitosamente"
+        }
+    except Exception as e:
+        logger.error(f"Error retrieving CEPLAN data for user {current_user.email}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener los datos CEPLAN: {str(e)}"
+        )

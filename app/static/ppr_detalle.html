@@ -101,6 +101,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="cartera-tab" data-bs-toggle="tab" data-bs-target="#cartera" type="button" role="tab">Cartera Servicios</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="comparison-tab" data-bs-toggle="tab" data-bs-target="#comparison" type="button" role="tab">Comparación PPR-CEPLAN</button>
+            </li>
         </ul>
 
         <!-- Tab content -->
@@ -135,6 +138,89 @@
                         <p class="mt-2">Cargando datos de Cartera de Servicios...</p>
                     </div>
                     <div id="carteraData" style="display: none;"></div>
+                </div>
+            </div>
+            
+            <!-- Comparison Tab -->
+            <div class="tab-pane fade" id="comparison" role="tabpanel">
+                <div id="comparisonContent">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-balance-scale me-2"></i>Comparación PPR-CEPLAN</h5>
+                            <div>
+                                <button class="btn btn-primary" id="runComparisonBtn">
+                                    <i class="fas fa-sync-alt me-1"></i>Ejecutar Comparación
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="comparisonLoading" class="text-center my-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando comparación...</span>
+                                </div>
+                                <p class="mt-2">Cargando resultados de comparación...</p>
+                            </div>
+                            <div id="comparisonData" style="display: none;">
+                                <div class="row mb-4">
+                                    <div class="col-md-3">
+                                        <div class="card bg-primary text-white">
+                                            <div class="card-body text-center">
+                                                <h3 id="totalDifferences">0</h3>
+                                                <p class="card-text">Total Diferencias</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h3 id="okCount">0</h3>
+                                                <p class="card-text">Sin Alerta</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-warning text-white">
+                                            <div class="card-body text-center">
+                                                <h3 id="alertCount">0</h3>
+                                                <p class="card-text">Con Alerta</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-secondary text-white">
+                                            <div class="card-body text-center">
+                                                <h3 id="pendingCount">0</h3>
+                                                <p class="card-text">Pendientes</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="comparisonTable">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Código Subproducto</th>
+                                                <th>Nombre Subproducto</th>
+                                                <th>Año</th>
+                                                <th>Estado</th>
+                                                <th>Prog Ene</th>
+                                                <th>Ejec Ene</th>
+                                                <th>Prog Feb</th>
+                                                <th>Ejec Feb</th>
+                                                <th>Prog Mar</th>
+                                                <th>Ejec Mar</th>
+                                                <!-- We'll add more columns dynamically as needed -->
+                                            </tr>
+                                        </thead>
+                                        <tbody id="comparisonTableBody">
+                                            <!-- Data will be loaded dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -511,6 +597,133 @@
             document.getElementById('carteraLoading').style.display = 'none';
             document.getElementById('carteraData').style.display = 'block';
         }
+
+        // Load Comparison data when Comparison tab is shown
+        document.getElementById('comparison-tab').addEventListener('shown.bs.tab', function () {
+            if (!this.dataset.loaded) {
+                const pprId = new URLSearchParams(window.location.search).get('id');
+                if (pprId) {
+                    loadComparisonData(pprId);
+                }
+                this.dataset.loaded = 'true';
+            }
+        });
+
+        // Add event listener for the run comparison button
+        document.getElementById('runComparisonBtn')?.addEventListener('click', function() {
+            const pprId = new URLSearchParams(window.location.search).get('id');
+            if (pprId) {
+                runComparisonForPPR(pprId);
+            }
+        });
+
+        async function runComparisonForPPR(pprId) {
+            try {
+                showLoading('Ejecutando comparación PPR-CEPLAN...');
+                
+                const result = await callAPI(`/comparison/ppr/${pprId}/compare`, 'POST');
+                
+                hideLoading();
+                
+                Swal.fire({
+                    title: 'Comparación completada',
+                    html: `<p>${result.message}</p><p>Se procesaron ${result.total_differences} registros de diferencia.</p>`,
+                    icon: 'success',
+                    confirmButtonText: 'Actualizar resultados'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Reload the comparison data
+                        loadComparisonData(pprId);
+                    }
+                });
+            } catch (error) {
+                console.error('Error running comparison:', error);
+                hideLoading();
+                showError(`Error al ejecutar la comparación: ${error.message || error}`);
+            }
+        }
+
+        async function loadComparisonData(pprId) {
+            try {
+                document.getElementById('comparisonLoading').style.display = 'block';
+                document.getElementById('comparisonData').style.display = 'none';
+
+                // Load summary and detailed data
+                const [summaryResponse, resultsResponse] = await Promise.all([
+                    callAPI(`/comparison/ppr/${pprId}/comparison-summary`, 'GET'),
+                    callAPI(`/comparison/ppr/${pprId}/comparison-results`, 'GET')
+                ]);
+
+                if (summaryResponse && summaryResponse.summary) {
+                    const summary = summaryResponse.summary;
+                    
+                    // Update summary cards
+                    document.getElementById('totalDifferences').textContent = summary.total_differences;
+                    document.getElementById('okCount').textContent = summary.ok;
+                    document.getElementById('alertCount').textContent = summary.alert;
+                    document.getElementById('pendingCount').textContent = summary.pending_review;
+                }
+
+                if (resultsResponse && resultsResponse.data && resultsResponse.data.length > 0) {
+                    displayComparisonData(resultsResponse.data);
+                } else {
+                    document.getElementById('comparisonLoading').innerHTML = '<div class="alert alert-info text-center">No hay resultados de comparación disponibles. Ejecute la comparación para generar los datos.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading comparison data:', error);
+                document.getElementById('comparisonLoading').innerHTML = `<div class="alert alert-danger text-center">Error al cargar datos de comparación: ${error.message}</div>`;
+            }
+        }
+
+        function displayComparisonData(data) {
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // Determine row style based on status
+                let rowClass = '';
+                if (item.estado === 'alerta') {
+                    rowClass = 'table-warning';
+                } else if (item.estado === 'ok') {
+                    rowClass = 'table-success';
+                } else {
+                    rowClass = 'table-secondary';
+                }
+                
+                row.className = rowClass;
+                
+                // Create status badge
+                let statusBadge = '';
+                if (item.estado === 'alerta') {
+                    statusBadge = '<span class="badge bg-warning">Alerta</span>';
+                } else if (item.estado === 'ok') {
+                    statusBadge = '<span class="badge bg-success">OK</span>';
+                } else {
+                    statusBadge = '<span class="badge bg-secondary">Pendiente</span>';
+                }
+                
+                row.innerHTML = `
+                    <td><strong>${item.codigo_subproducto || ''}</strong></td>
+                    <td>${item.nombre_subproducto || ''}</td>
+                    <td><strong>${item.anio || ''}</strong></td>
+                    <td>${statusBadge}</td>
+                    <td>${item.diferencias.ene.prog !== null && item.diferencias.ene.prog !== undefined ? parseFloat(item.diferencias.ene.prog).toFixed(2) : ''}</td>
+                    <td>${item.diferencias.ene.ejec !== null && item.diferencias.ene.ejec !== undefined ? parseFloat(item.diferencias.ene.ejec).toFixed(2) : ''}</td>
+                    <td>${item.diferencias.feb.prog !== null && item.diferencias.feb.prog !== undefined ? parseFloat(item.diferencias.feb.prog).toFixed(2) : ''}</td>
+                    <td>${item.diferencias.feb.ejec !== null && item.diferencias.feb.ejec !== undefined ? parseFloat(item.diferencias.feb.ejec).toFixed(2) : ''}</td>
+                    <td>${item.diferencias.mar.prog !== null && item.diferencias.mar.prog !== undefined ? parseFloat(item.diferencias.mar.prog).toFixed(2) : ''}</td>
+                    <td>${item.diferencias.mar.ejec !== null && item.diferencias.mar.ejec !== undefined ? parseFloat(item.diferencias.mar.ejec).toFixed(2) : ''}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('comparisonLoading').style.display = 'none';
+            document.getElementById('comparisonData').style.display = 'block';
+        }
+
     </script>
 </body>
 </html>
