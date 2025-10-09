@@ -301,6 +301,9 @@
     <script>
         // Reports functionality
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize authentication - redirects to login if not authenticated
+            initializeAuth();
+            
             // Initialize charts if Chart.js is available
             initCharts();
         });

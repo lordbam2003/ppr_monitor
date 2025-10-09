@@ -4,8 +4,8 @@ from typing import List
 
 from app.core.security import get_current_active_user, get_password_hash
 from app.core.database import get_session
-from app.models.user import User, InternalRoleEnum
-from app.schemas.user import UserResponse, UserUpdate, UserCreate
+from app.models.user import User, InternalRoleEnum, get_role_display_name
+from app.schemas.user import UserResponse, UserUpdate, UserCreate, RoleEnum
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -70,8 +70,24 @@ async def get_users(
     check_admin(current_user)
     
     users = session.exec(select(User)).all()
-    logger.info(f"Successfully retrieved {len(users)} users for admin {current_user.email}")
-    return users
+    
+    # Convert users to response format, handling role enum conversion
+    user_responses = []
+    
+    for user in users:
+        user_response = UserResponse(
+            id_usuario=user.id_usuario,
+            nombre=user.nombre,
+            email=user.email,
+            rol=RoleEnum(get_role_display_name(user.rol)),  # Convert to display role enum
+            is_active=user.is_active,
+            fecha_creacion=user.fecha_creacion,
+            fecha_actualizacion=user.fecha_actualizacion
+        )
+        user_responses.append(user_response)
+    
+    logger.info(f"Successfully retrieved {len(user_responses)} users for admin {current_user.email}")
+    return user_responses
 
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -94,8 +110,22 @@ async def get_user(
             detail="Usuario no encontrado"
         )
     
+    # Convert user to response format, handling role enum conversion
+    from app.models.user import get_role_display_name
+    from app.schemas.user import RoleEnum
+    
+    user_response = UserResponse(
+        id_usuario=user.id_usuario,
+        nombre=user.nombre,
+        email=user.email,
+        rol=RoleEnum(get_role_display_name(user.rol)),  # Convert to display role enum
+        is_active=user.is_active,
+        fecha_creacion=user.fecha_creacion,
+        fecha_actualizacion=user.fecha_actualizacion
+    )
+    
     logger.info(f"Successfully retrieved user {user.email} for admin {current_user.email}")
-    return user
+    return user_response
 
 
 @router.post("/", response_model=UserResponse)
@@ -123,11 +153,15 @@ async def create_user(
         )
     
     # Crear nuevo usuario
+    # Convert display role enum back to internal role enum before storing in DB
+    from app.models.user import get_role_internal_name
+    internal_role = get_role_internal_name(user_data.rol)
+    
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         nombre=user_data.nombre,
         email=user_data.email,
-        rol=user_data.rol,
+        rol=internal_role,
         hashed_password=hashed_password,
     )
     
@@ -135,8 +169,19 @@ async def create_user(
     session.commit()
     session.refresh(new_user)
     
+    # Convert user to response format, handling role enum conversion
+    user_response = UserResponse(
+        id_usuario=new_user.id_usuario,
+        nombre=new_user.nombre,
+        email=new_user.email,
+        rol=RoleEnum(get_role_display_name(new_user.rol)),  # Convert to display role enum
+        is_active=new_user.is_active,
+        fecha_creacion=new_user.fecha_creacion,
+        fecha_actualizacion=new_user.fecha_actualizacion
+    )
+    
     logger.info(f"Successfully created user {new_user.email} by admin {current_user.email}")
-    return new_user
+    return user_response
 
 
 @router.put("/{user_id}", response_model=UserResponse)
@@ -163,7 +208,12 @@ async def update_user(
     # Actualizar campos
     update_data = user_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        if field != "password":  # Handle password separately if needed
+        if field == "rol":
+            # Convert display role enum back to internal role enum before storing in DB
+            from app.models.user import get_role_internal_name
+            internal_role = get_role_internal_name(value)
+            setattr(user, field, internal_role)
+        elif field != "password":  # Handle password separately if needed
             setattr(user, field, value)
     
     # If password is being updated
@@ -174,8 +224,19 @@ async def update_user(
     session.commit()
     session.refresh(user)
     
+    # Convert user to response format, handling role enum conversion
+    user_response = UserResponse(
+        id_usuario=user.id_usuario,
+        nombre=user.nombre,
+        email=user.email,
+        rol=RoleEnum(get_role_display_name(user.rol)),  # Convert to display role enum
+        is_active=user.is_active,
+        fecha_creacion=user.fecha_creacion,
+        fecha_actualizacion=user.fecha_actualizacion
+    )
+    
     logger.info(f"Successfully updated user {user.email} by admin {current_user.email}")
-    return user
+    return user_response
 
 
 @router.delete("/{user_id}")

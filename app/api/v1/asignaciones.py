@@ -23,7 +23,25 @@ def get_available_responsables(
     users = session.exec(
         select(User).where(User.rol == RoleEnum.responsable_ppr).where(User.is_active == True)
     ).all()
-    return users
+    
+    # Convert users to response format, handling role enum conversion
+    from app.models.user import get_role_display_name
+    from app.schemas.user import RoleEnum as DisplayRoleEnum
+    
+    user_responses = []
+    for user in users:
+        user_response = UserResponse(
+            id_usuario=user.id_usuario,
+            nombre=user.nombre,
+            email=user.email,
+            rol=DisplayRoleEnum(get_role_display_name(user.rol)),  # Convert to display role enum
+            is_active=user.is_active,
+            fecha_creacion=user.fecha_creacion,
+            fecha_actualizacion=user.fecha_actualizacion
+        )
+        user_responses.append(user_response)
+    
+    return user_responses
 
 @router.get("/ppr/{ppr_id}/responsables", response_model=List[UserResponse])
 def get_ppr_responsables(
@@ -35,7 +53,25 @@ def get_ppr_responsables(
     ppr = session.get(PPR, ppr_id)
     if not ppr:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PPR not found")
-    return ppr.responsables
+    
+    # Convert users to response format, handling role enum conversion
+    from app.models.user import get_role_display_name
+    from app.schemas.user import RoleEnum as DisplayRoleEnum
+    
+    user_responses = []
+    for user in ppr.responsables:
+        user_response = UserResponse(
+            id_usuario=user.id_usuario,
+            nombre=user.nombre,
+            email=user.email,
+            rol=DisplayRoleEnum(get_role_display_name(user.rol)),  # Convert to display role enum
+            is_active=user.is_active,
+            fecha_creacion=user.fecha_creacion,
+            fecha_actualizacion=user.fecha_actualizacion
+        )
+        user_responses.append(user_response)
+    
+    return user_responses
 
 @router.post("/ppr/{ppr_id}/responsables/{user_id}", status_code=status.HTTP_201_CREATED)
 def assign_responsable(

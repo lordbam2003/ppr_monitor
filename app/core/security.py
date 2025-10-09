@@ -17,12 +17,20 @@ def get_password_hash_direct(password: str) -> str:
     """
     Genera el hash de una contraseña usando bcrypt directamente para evitar problemas de compatibilidad
     """
-    # Bcrypt tiene un límite de 72 caracteres para la contraseña
-    if len(password) > 72:
-        password = password[:72]  # Truncar si es necesario
+    import hashlib
     
-    # Codificar la contraseña a bytes
-    password_bytes = password.encode('utf-8')
+    # Bcrypt tiene un límite de 72 caracteres para la contraseña
+    # Para evitar este problema, usamos SHA-256 para preprocesar la contraseña
+    # Esto mantiene la seguridad sin limitar la longitud de la contraseña original
+    if len(password) > 72:
+        # Si la contraseña es muy larga, creamos un hash SHA-256 de la contraseña
+        # y usamos ese hash como la entrada para bcrypt
+        password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    else:
+        password_hash = password
+    
+    # Codificar la contraseña (o su hash) a bytes
+    password_bytes = password_hash.encode('utf-8')
     
     # Generar el hash
     salt = bcrypt.gensalt()
@@ -38,9 +46,19 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verifica que la contraseña plana coincida con la contraseña hasheada
     """
-    # Usar bcrypt directamente para evitar problemas de compatibilidad con passlib
+    import hashlib
     import bcrypt
-    password_bytes = plain_password.encode('utf-8')
+    
+    # Aplicar el mismo preprocesamiento que en get_password_hash
+    # para mantener la consistencia en la verificación
+    if len(plain_password) > 72:
+        # Aplicar el mismo proceso que en get_password_hash
+        plain_password_hash = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
+    else:
+        plain_password_hash = plain_password
+    
+    # Usar bcrypt directamente para evitar problemas de compatibilidad con passlib
+    password_bytes = plain_password_hash.encode('utf-8')
     hashed_bytes = hashed_password.encode('utf-8')
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 
@@ -49,11 +67,24 @@ def get_password_hash(password: str) -> str:
     """
     Genera el hash de una contraseña
     """
-    # Bcrypt tiene un límite de 72 caracteres para la contraseña
-    if len(password) > 72:
-        password = password[:72]  # Truncar si es necesario
+    import hashlib
     
-    return pwd_context.hash(password)
+    # Bcrypt tiene un límite de 72 caracteres para la contraseña
+    # Para evitar este problema, usamos SHA-256 para preprocesar la contraseña
+    # Esto mantiene la seguridad sin limitar la longitud de la contraseña original
+    if len(password) > 72:
+        # Si la contraseña es muy larga, creamos un hash SHA-256 de la contraseña
+        # y usamos ese hash como la entrada para bcrypt
+        password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    else:
+        password_hash = password
+    
+    # Usar bcrypt directamente para evitar problemas de compatibilidad con passlib
+    password_bytes = password_hash.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    
+    return hashed.decode('utf-8')
 
 
 def authenticate_user(user: User, password: str) -> bool:

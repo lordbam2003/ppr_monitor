@@ -108,6 +108,9 @@
     <script>
         // Initialize auth on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize authentication - redirects to login if not authenticated
+            initializeAuth();
+            
             // Update navigation based on auth status
             updateNavigation();
         });

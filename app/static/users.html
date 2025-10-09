@@ -162,6 +162,9 @@
     <script>
         // User Management specific functionality
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize authentication - redirects to login if not authenticated
+            initializeAuth();
+            
             loadUsers();
             checkUserPermissions();
             
