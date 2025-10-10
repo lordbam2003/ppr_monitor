@@ -62,8 +62,11 @@
                 <button class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#uploadCarteraModal">
                     <i class="fas fa-folder-open me-1"></i>Subir Cartera
                 </button>
-                <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#createPprFromCarteraModal">
+                <button class="btn btn-secondary me-2" data-bs-toggle="modal" data-bs-target="#createPprFromCarteraModal">
                     <i class="fas fa-bolt me-1"></i>Crear PPR desde Cartera
+                </button>
+                <button class="btn btn-danger" id="deleteByYearBtn" data-bs-toggle="modal" data-bs-target="#deleteByYearModal">
+                    <i class="fas fa-trash-alt me-1"></i>Borrar por Año
                 </button>
             </div>
         </div>
@@ -346,6 +349,36 @@
         </div>
     </div>
 
+    <!-- Delete by Year Modal -->
+    <div class="modal fade" id="deleteByYearModal" tabindex="-1" aria-labelledby="deleteByYearModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteByYearModalLabel">Borrar todos los datos por Año</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="deleteByYearForm">
+                        <div class="mb-3">
+                            <label for="yearToDelete" class="form-label">Seleccione el año para borrar</label>
+                            <select class="form-select" id="yearToDelete" required>
+                                <!-- Years will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>¡Atención!</strong> Esta acción es irreversible y borrará todos los datos de PPR, Productos, Actividades, Subproductos y Programación asociados al año seleccionado.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteByYearBtn">Borrar Datos</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="/static/js/bootstrap.bundle.min.js"></script>
     <!-- SweetAlert2 -->
@@ -375,6 +408,8 @@
             document.getElementById('uploadCeplanBtn').addEventListener('click', uploadCeplanFile);
             document.getElementById('uploadCarteraBtn').addEventListener('click', uploadCarteraFile);
             document.getElementById('createPprFromCarteraBtn').addEventListener('click', createPprFromCartera);
+            document.getElementById('deleteByYearBtn').addEventListener('click', openDeleteByYearModal);
+            document.getElementById('confirmDeleteByYearBtn').addEventListener('click', confirmDeleteByYear);
             
             // Add event listeners for the main refresh and upload buttons
             document.getElementById('refreshBtn').addEventListener('click', function() {
@@ -1042,6 +1077,73 @@
         async function viewComparisonResults(pprId) {
             // This function could open a modal or redirect to a detailed comparison page
             window.location.href = `/ppr_detalle?id=${pprId}#comparison`;
+        }
+
+        async function openDeleteByYearModal() {
+            try {
+                const response = await callAPI('/pprs', 'GET');
+                const yearSelect = document.getElementById('yearToDelete');
+                yearSelect.innerHTML = '';
+
+                if (response && response.data) {
+                    const years = [...new Set(response.data.map(ppr => ppr.anio))];
+                    if (years.length > 0) {
+                        years.sort((a, b) => b - a); // Sort years descending
+                        years.forEach(year => {
+                            const option = document.createElement('option');
+                            option.value = year;
+                            option.textContent = year;
+                            yearSelect.appendChild(option);
+                        });
+                    } else {
+                        const option = document.createElement('option');
+                        option.textContent = 'No hay años con datos para borrar';
+                        option.disabled = true;
+                        yearSelect.appendChild(option);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading years for deletion:', error);
+                showError('Error al cargar los años disponibles para borrar.');
+            }
+        }
+
+        async function confirmDeleteByYear() {
+            const yearSelect = document.getElementById('yearToDelete');
+            const year = yearSelect.value;
+
+            if (!year || isNaN(year)) {
+                showError('Por favor, seleccione un año válido.');
+                return;
+            }
+
+            Swal.fire({
+                title: `¿Está absolutamente seguro?`,
+                text: `Esta acción eliminará permanentemente TODOS los datos del año ${year}. Esta acción no se puede deshacer.`,
+                icon: 'error',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, estoy seguro, borrar todo',
+                cancelButtonText: 'Cancelar'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        showLoading(`Borrando todos los datos para el año ${year}...`);
+                        const response = await callAPI(`/pprs/by-year/${year}`, 'DELETE');
+                        hideLoading();
+                        showSuccess(response.message || 'Datos eliminados exitosamente.');
+                        loadPPRs(); // Refresh the PPR list
+                        // Close the modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteByYearModal'));
+                        modal.hide();
+                    } catch (error) {
+                        console.error(`Error deleting data for year ${year}:`, error);
+                        hideLoading();
+                        showError(error.message || `Error al borrar los datos del año ${year}.`);
+                    }
+                }
+            });
         }
 
     </script>

@@ -680,7 +680,37 @@ class CEPLANExtractorService:
     def extract_ceplan_from_file(self, file_path: Path) -> Dict:
         """Extracts CEPLAN data based on a 2-row structure for each subproduct (Programado/Ejecutado)."""
         logger.info(f"Starting CEPLAN extraction with 2-row P/E logic from file: {file_path}")
-        df = pd.read_excel(file_path, header=None, engine='openpyxl')
+
+        try:
+            with open(file_path, 'rb') as f:
+                initial_bytes = f.read(10)
+
+            if initial_bytes.startswith(b'\xef\xbb\xbf<tabl'):
+                logger.info("Detected HTML-like file, using read_html")
+                tables = pd.read_html(file_path, header=None, encoding='utf-8')
+                logger.info(f"read_html found {len(tables)} tables.")
+                if tables:
+                    df = pd.concat(tables, ignore_index=True)
+                    df = df.dropna(how='all').reset_index(drop=True)
+                else:
+                    df = pd.DataFrame()
+            else:
+                logger.info("File does not appear to be HTML, using read_excel")
+                file_extension = file_path.suffix.lower()
+                if file_extension == '.xlsx':
+                    engine = 'openpyxl'
+                elif file_extension == '.xls':
+                    engine = 'xlrd'
+                else:
+                    raise ValueError(f"Unsupported file extension: {file_extension}")
+                logger.info(f"Using {engine} engine for {file_extension} file.")
+                df = pd.read_excel(file_path, header=None, engine=engine)
+            
+            logger.info(f"Loaded DataFrame with shape: {df.shape}")
+
+        except Exception as e:
+            logger.error(f"Error reading CEPLAN file {file_path}: {e}", exc_info=True)
+            raise ValueError(f"Error al procesar el archivo: {e}")
         
         subproducts = []
         # Use a while loop to manually control the index, as we process 2 rows at a time.
