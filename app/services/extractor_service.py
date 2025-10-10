@@ -35,8 +35,17 @@ class PPRExtractorService:
         """
         logger.info(f"Starting PPR extraction from file: {file_path}")
         
+        # Determine the appropriate engine based on file extension
+        file_ext = file_path.suffix.lower()
+        if file_ext == '.xlsx':
+            engine = 'openpyxl'
+        elif file_ext == '.xls':
+            engine = 'xlrd'
+        else:
+            engine = 'openpyxl'  # Default fallback
+        
         try:
-            df = pd.read_excel(file_path, header=None, engine='openpyxl')
+            df = pd.read_excel(file_path, header=None, engine=engine)
             logger.info(f"Loaded Excel file with {len(df)} rows and {len(df.columns)} columns")
             
             ppr_info = self._extract_ppr_info(df)
@@ -680,7 +689,17 @@ class CEPLANExtractorService:
     def extract_ceplan_from_file(self, file_path: Path) -> Dict:
         """Extracts CEPLAN data based on a 2-row structure for each subproduct (Programado/Ejecutado)."""
         logger.info(f"Starting CEPLAN extraction with 2-row P/E logic from file: {file_path}")
-        df = pd.read_excel(file_path, header=None, engine='openpyxl')
+        
+        # Determine the appropriate engine based on file extension
+        file_ext = file_path.suffix.lower()
+        if file_ext == '.xlsx':
+            engine = 'openpyxl'
+        elif file_ext == '.xls':
+            engine = 'xlrd'
+        else:
+            engine = 'openpyxl'  # Default fallback
+        
+        df = pd.read_excel(file_path, header=None, engine=engine)
         
         subproducts = []
         # Use a while loop to manually control the index, as we process 2 rows at a time.
