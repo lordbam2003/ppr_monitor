@@ -204,6 +204,8 @@ class PPRExtractorService:
             logger.warning("Could not find expected headers, using default positions")
             # Fallback to original approach with default positions
             return self._extract_hierarchical_structure_default(df)
+
+        print(header_info)
         
         # Extract position information
         prod_code_col = header_info.get('prod_code_col', 0)
@@ -311,6 +313,7 @@ class PPRExtractorService:
         # Scan first 20 rows to find headers
         for row_idx in range(min(20, len(df))):
             row = df.iloc[row_idx]
+            print(row)
             row_text = [str(cell).lower() if pd.notna(cell) else '' for cell in row]
             
             # Check each cell in the row for header patterns
@@ -372,32 +375,46 @@ class PPRExtractorService:
                         header_info['meta_col'] = col_idx
                         logger.debug(f"Found meta header at row {row_idx}, col {col_idx}: {cell_text}")
                         break
+        # Devuelve una matriz booleana (True donde hay "P")
+        mask = df == "P"
+        if mask.any().any():  # Verifica que exista al menos un "P"
+            fila, columna = mask.stack().idxmax()
         
-        # Now find the monthly column start (after 'ene' and first 'P' for programado)
-        for row_idx in range(min(25, len(df))):  # Check more rows for monthly data
-            row = df.iloc[row_idx]
-            row_text = [str(cell).lower() if pd.notna(cell) else '' for cell in row]
-            
-            for col_idx, cell_text in enumerate(row_text):
-                if pd.notna(cell_text):
-                    normalized_text = self._normalize_text(cell_text)
-                    
-                    # Look for month start (ENE) and programado indicator (P)
-                    if re.search(r'ene', normalized_text, re.IGNORECASE):
-                        # Find the first 'P' after ENE which indicates Programado
-                        for next_col_idx in range(col_idx, min(len(row), col_idx + 20)):  # Look ahead up to 20 columns
-                            next_cell = str(row.iloc[next_col_idx]).lower() if pd.notna(row.iloc[next_col_idx]) else ''
-                            if next_cell == 'p' or 'programado' in self._normalize_text(next_cell):
-                                header_info['programado_start_col'] = next_col_idx
-                                header_info['data_start_row'] = row_idx + 1  # Data starts after header row
-                                logger.debug(f"Found monthly data start at row {row_idx}, col {next_col_idx}")
-                                break
-                        if 'programado_start_col' in header_info:
-                            break
-                if 'programado_start_col' in header_info:
-                    break
-            if 'programado_start_col' in header_info:
-                break
+        header_info['data_start_row']=fila+1
+        header_info['programado_start_col']=columna
+
+        
+        # For the specific PPR format: columns 0-7 are fixed data, column 8 is meta, monthly data starts at column 9
+        # If we have properly identified the 9 standard columns, force the programado start to be at column 9
+        required_cols = ['prod_code_col', 'prod_name_col', 'act_code_col', 'act_name_col', 
+                        'subprod_code_col', 'subprod_name_col', 'unidad_medida_col', 'meta_col']
+        
+        if all(col in header_info for col in required_cols):
+            # Check if the meta column is at position 8 as expected in your format
+            if header_info.get('meta_col') == 8:
+                # If so, the programado should start at column 9
+                header_info['programado_start_col'] = 9
+                logger.debug(f"Forced programado_start_col to 9 based on expected data structure (meta_col at 8)")
+            elif 'meta_col' in header_info and 'data_start_row' in header_info:
+                # If meta is in a different column, monthly data should start immediately after it
+                # assuming (P,E) pairs follow the meta column
+                data_row_idx = header_info['data_start_row']
+                if data_row_idx < len(df):
+                    data_row = df.iloc[data_row_idx]
+                    # Look for the first numeric value after the meta column that's different from meta value
+                    meta_col_pos = header_info['meta_col']
+                    for col_idx in range(meta_col_pos + 1, len(data_row)):
+                        cell_value = data_row.iloc[col_idx] if col_idx < len(data_row) else None
+                        if pd.notna(cell_value):
+                            try:
+                                # Check if this looks like a monthly value (a number) but different from meta
+                                cell_str = str(cell_value).strip()
+                                if cell_str.replace('.', '').replace(',', '').replace('-', '').isdigit():
+                                    header_info['programado_start_col'] = col_idx
+                                    logger.debug(f"Set programado_start_col to {col_idx} based on first numeric value after meta column")
+                                    break
+                            except:
+                                continue
         
         logger.info(f"Header positions found: {header_info}")
         return header_info
@@ -413,20 +430,29 @@ class PPRExtractorService:
             meta_anual = 0
             if meta_col < len(row) and pd.notna(row.iloc[meta_col]):
                 try:
-                    meta_anual = int(round(float(str(row.iloc[meta_col]).replace(',', '.'))))
+                    meta_value = str(row.iloc[meta_col]).strip()
+                    # Only process as numeric if it's not clearly a header or label
+                    # Handle special case where meta column might contain label text
+                    normalized_meta = self._normalize_text(meta_value)
+                    if not any(label in normalized_meta for label in ['meta', 'indicador']):
+                        meta_anual = int(round(float(meta_value.replace(',', '.'))))
                 except (ValueError, TypeError):
                     meta_anual = 0
 
             programacion = {}
             ejecucion = {}
             
-            # Extract 12 months of programado and ejecutado values
+            # Extract 12 months of programado and ejecutado values starting after the known data columns
             for i, month in enumerate(self.months):
                 prog_col_idx = programado_start_col + (i * 2)  # Programado in even positions after start
                 ejec_col_idx = programado_start_col + (i * 2) + 1  # Ejecutado in odd positions after start
                 
+                # Explicitly check to avoid using the meta column for programado/ejecutado values
+                # Also avoid using programado column if it accidentally matches meta column
                 prog_value = 0
-                if prog_col_idx < len(row) and pd.notna(row.iloc[prog_col_idx]):
+                if (prog_col_idx < len(row) and pd.notna(row.iloc[prog_col_idx]) 
+                    and prog_col_idx != meta_col
+                    and str(row.iloc[prog_col_idx]).strip().lower() not in ['p', 'programado', 'prog']):  # Don't use header labels
                     try:
                         prog_value = int(round(float(str(row.iloc[prog_col_idx]).replace(',', '.'))))
                     except (ValueError, TypeError):
@@ -434,7 +460,9 @@ class PPRExtractorService:
                 programacion[month] = prog_value
 
                 ejec_value = 0
-                if ejec_col_idx < len(row) and pd.notna(row.iloc[ejec_col_idx]):
+                if (ejec_col_idx < len(row) and pd.notna(row.iloc[ejec_col_idx])
+                    and ejec_col_idx != meta_col
+                    and str(row.iloc[ejec_col_idx]).strip().lower() not in ['e', 'ejecutado', 'ejec']):  # Don't use header labels
                     try:
                         ejec_value = int(round(float(str(row.iloc[ejec_col_idx]).replace(',', '.'))))
                     except (ValueError, TypeError):

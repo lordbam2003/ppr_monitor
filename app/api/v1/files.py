@@ -271,8 +271,8 @@ async def commit_extract(
         with open(temp_file_path, 'r', encoding='utf-8') as f:
             preview_data = json.load(f)
         
-        # Process and store the PPR data in the database
-        ppr_result = await store_ppr_data(preview_data, session, current_user)
+        # Process and update the PPR programación data in the database
+        ppr_result = await update_values_ppr(preview_data, session, current_user)
         
         # Remove the temporary file after successful commit
         temp_file_path.unlink()
@@ -574,6 +574,188 @@ async def store_ppr_data(preview_data, session, current_user):
     except Exception as e:
         session.rollback()
         logger.error(f"Error storing PPR data: {str(e)}", exc_info=True)
+        raise e
+
+
+async def update_values_ppr(preview_data, session, current_user):
+    """
+    Update PPR PROGRAMADO and EJECUTADO values only.
+    The hierarchical structure (PPR, Productos, Actividades, Subproductos) already exists in the database.
+    This function only updates the monthly PROGRAMADO and EJECUTADO values based on subproduct codes.
+    """
+    try:
+        # Validate the data structure before processing
+        if not validate_ppr_data_structure(preview_data):
+            raise ValueError("Invalid or incomplete PPR data structure")
+        
+        # Extract PPR information
+        ppr_info = preview_data.get('ppr_data', {}).get('ppr', {})
+        if not ppr_info:
+            # Try the simpler structure
+            ppr_info = preview_data.get('ppr', {})
+        
+        ppr_codigo = str(ppr_info.get('codigo', '')).strip()
+        ppr_nombre = str(ppr_info.get('nombre', '')).strip()
+        ppr_anio = int(ppr_info.get('anio', datetime.now().year))
+        
+        logger.info(f"Updating PPR programación data - Code: '{ppr_codigo}', Name: '{ppr_nombre}', Year: {ppr_anio}")
+        
+        # Check if PPR exists with same code and year
+        existing_ppr = session.exec(
+            select(PPR).where(PPR.codigo_ppr == ppr_codigo, PPR.anio == ppr_anio)
+        ).first()
+        
+        if not existing_ppr:
+            logger.warning(f"PPR with code {ppr_codigo} and year {ppr_anio} does not exist in database.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"PPR con código {ppr_codigo} y año {ppr_anio} no encontrado. Debe crear la estructura jerárquica primero."
+            )
+        
+        ppr_id = existing_ppr.id_ppr
+        logger.info(f"PPR exists with ID: {ppr_id}. Proceeding with programación updates.")
+        
+        # Extract productos data to get subproducts
+        productos_data = preview_data.get('ppr_data', {}).get('productos', [])
+        if not productos_data:
+            # Try the simpler structure
+            productos_data = preview_data.get('productos', [])
+            
+        logger.info(f"Processing {len(productos_data)} products for programación updates...")
+        
+        # Fetch all subproducts for this PPR to create a lookup map
+        all_subproductos = session.exec(
+            select(Subproducto)
+            .join(Actividad).join(Producto).join(PPR)
+            .where(PPR.id_ppr == ppr_id)
+        ).all()
+        
+        # Create maps for quick lookup by both original code and normalized code (leading zeros stripped)
+        subproducto_map = {sub.codigo_subproducto: sub for sub in all_subproductos}
+        subproducto_normalized_map = {sub.codigo_subproducto.lstrip('0'): sub for sub in all_subproductos}
+        logger.info(f"Created lookup maps with {len(subproducto_map)} existing subproducts (original) and {len(subproducto_normalized_map)} normalized codes.")
+        
+        updated_count = 0
+        unmatched_codes = []
+        
+        # Process products, activities, and subproducts just to get the subproduct data
+        for producto_data in productos_data:
+            productos_data = preview_data.get('ppr_data', {}).get('productos', [])
+            if not productos_data:
+                # Try the simpler structure
+                productos_data = preview_data.get('productos', [])
+                
+            logger.info(f"Processing {len(productos_data)} products for programación updates...")
+            
+            for producto_data in productos_data:
+                # Process activities
+                actividades_data = producto_data.get('actividades', [])
+                
+                for actividad_data in actividades_data:
+                    # Process subproducts
+                    subproductos_data = actividad_data.get('subproductos', [])
+                    
+                    for subproducto_data in subproductos_data:
+                        subproducto_codigo = str(subproducto_data.get('codigo_subproducto', '')).strip()
+                        
+                        if not subproducto_codigo:
+                            logger.warning(f"Skipping subproduct with missing code: {subproducto_data.get('nombre_subproducto', 'Unknown')}")
+                            continue
+                        
+                        # Look up the existing subproduct by code (try exact match first, then normalized match)
+                        existing_subproducto = subproducto_map.get(subproducto_codigo)
+                        
+                        # If not found with exact match, try normalized match (stripping leading zeros)
+                        if not existing_subproducto:
+                            normalized_codigo = subproducto_codigo.lstrip('0')
+                            existing_subproducto = subproducto_normalized_map.get(normalized_codigo)
+                        
+                        if not existing_subproducto:
+                            logger.warning(f"Subproduct with code '{subproducto_codigo}' not found in database (tried normalized as '{subproducto_codigo.lstrip('0')}'). Will be added to unmatched list.")
+                            unmatched_codes.append(subproducto_codigo)
+                            continue
+                        
+                        logger.info(f"Found existing subproduct in database: {existing_subproducto.codigo_subproducto} - {existing_subproducto.nombre_subproducto}")
+                        
+                        # Check if ProgramacionPPR record exists for this subproduct and year
+                        existing_programacion = session.exec(
+                            select(ProgramacionPPR)
+                            .where(ProgramacionPPR.id_subproducto == existing_subproducto.id_subproducto, 
+                                   ProgramacionPPR.anio == ppr_anio)
+                        ).first()
+                        
+                        # Extract programado and ejecutado data
+                        programado_data = subproducto_data.get('programado', {})
+                        ejecutado_data = subproducto_data.get('ejecutado', {})
+                        meta_anual = subproducto_data.get('meta_anual', 0)
+                        
+                        # Prepare the data for update/insert
+                        ppr_fields = {
+                            "meta_anual": safe_convert_to_float(meta_anual),
+                            # Populate monthly fields
+                            "prog_ene": safe_convert_to_float(programado_data.get('ene', 0)),
+                            "ejec_ene": safe_convert_to_float(ejecutado_data.get('ene', 0)),
+                            "prog_feb": safe_convert_to_float(programado_data.get('feb', 0)),
+                            "ejec_feb": safe_convert_to_float(ejecutado_data.get('feb', 0)),
+                            "prog_mar": safe_convert_to_float(programado_data.get('mar', 0)),
+                            "ejec_mar": safe_convert_to_float(ejecutado_data.get('mar', 0)),
+                            "prog_abr": safe_convert_to_float(programado_data.get('abr', 0)),
+                            "ejec_abr": safe_convert_to_float(ejecutado_data.get('abr', 0)),
+                            "prog_may": safe_convert_to_float(programado_data.get('may', 0)),
+                            "ejec_may": safe_convert_to_float(ejecutado_data.get('may', 0)),
+                            "prog_jun": safe_convert_to_float(programado_data.get('jun', 0)),
+                            "ejec_jun": safe_convert_to_float(ejecutado_data.get('jun', 0)),
+                            "prog_jul": safe_convert_to_float(programado_data.get('jul', 0)),
+                            "ejec_jul": safe_convert_to_float(ejecutado_data.get('jul', 0)),
+                            "prog_ago": safe_convert_to_float(programado_data.get('ago', 0)),
+                            "ejec_ago": safe_convert_to_float(ejecutado_data.get('ago', 0)),
+                            "prog_sep": safe_convert_to_float(programado_data.get('sep', 0)),
+                            "ejec_sep": safe_convert_to_float(ejecutado_data.get('sep', 0)),
+                            "prog_oct": safe_convert_to_float(programado_data.get('oct', 0)),
+                            "ejec_oct": safe_convert_to_float(ejecutado_data.get('oct', 0)),
+                            "prog_nov": safe_convert_to_float(programado_data.get('nov', 0)),
+                            "ejec_nov": safe_convert_to_float(ejecutado_data.get('nov', 0)),
+                            "prog_dic": safe_convert_to_float(programado_data.get('dic', 0)),
+                            "ejec_dic": safe_convert_to_float(ejecutado_data.get('dic', 0)),
+                        }
+                        
+                        if existing_programacion:
+                            logger.info(f"Updating existing programación for subproduct {existing_subproducto.codigo_subproducto}")
+                            # Update the existing record
+                            for key, value in ppr_fields.items():
+                                setattr(existing_programacion, key, value)
+                            session.add(existing_programacion)
+                        else:
+                            logger.info(f"Creating new programación for subproduct {existing_subproducto.codigo_subproducto}")
+                            # Create a new ProgramacionPPR record
+                            new_programacion = ProgramacionPPR(
+                                id_subproducto=existing_subproducto.id_subproducto,
+                                anio=ppr_anio,
+                                **ppr_fields
+                            )
+                            session.add(new_programacion)
+                        
+                        updated_count += 1
+        
+        # Commit all changes
+        session.commit()
+        
+        logger.info(f"PPR programación data successfully updated in database!")
+        logger.info(f"Summary: Updated {updated_count} subproduct programaciones for PPR {ppr_codigo}.")
+        
+        if unmatched_codes:
+            logger.warning(f"Found {len(unmatched_codes)} subproduct codes not present in database: {unmatched_codes[:10]}{'...' if len(unmatched_codes) > 10 else ''}")
+        
+        return {
+            "ppr_id": ppr_id,
+            "updated_count": updated_count,
+            "unmatched_codes": unmatched_codes,
+            "message": f"Datos de programación PPR actualizados exitosamente. {updated_count} registros actualizados."
+        }
+        
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error updating PPR programación data: {str(e)}", exc_info=True)
         raise e
 
 

@@ -89,4 +89,4 @@ local_settings.py
 # Excel and other temporary files
 *.tmp
 *~
-*#
+*#monitor_ppr.pub

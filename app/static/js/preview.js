@@ -66,19 +66,22 @@ function loadPreviewData(previewId) {
     });
 }
 
-function displayPreviewData(previewData) {
+function displayPreviewData(previewData, dataType = 'ppr') {
     try {
         // Check if it's PPR data, CEPLAN data, or Cartera data
         let pprData = null;
         let ceplanData = null;
         let carteraData = null;
         
-        if (previewData.ppr_data) {
+        if (dataType === 'cartera') {
+            // When dataType is 'cartera', the previewData should already be in the expected format
+            carteraData = previewData.cartera_data || previewData;
+        } else if (previewData.cartera_data) {
+            carteraData = previewData.cartera_data;
+        } else if (previewData.ppr_data) {
             pprData = previewData.ppr_data;
         } else if (previewData.ceplan_data) {
             ceplanData = previewData.ceplan_data;
-        } else if (previewData.cartera_data) {
-            carteraData = previewData.cartera_data;
         } else if (previewData.ppr && previewData.productos) {
             // Direct structure without ppr_data wrapper
             pprData = previewData;
