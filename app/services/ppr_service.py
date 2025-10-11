@@ -2,6 +2,7 @@ from sqlmodel import Session, select
 from app.models.ppr import PPR, Producto, Actividad, Subproducto
 from app.models.programacion import ProgramacionPPR, ProgramacionCEPLAN
 from app.core.logging_config import get_logger
+from app.schemas.ppr import SubproductProgrammingUpdate
 
 logger = get_logger(__name__)
 
@@ -50,3 +51,19 @@ def delete_ppr_data_by_year(year: int, session: Session) -> int:
     session.commit()
     logger.info(f"Successfully deleted {deleted_ppr_count} PPRs and their related data for year {year}.")
     return deleted_ppr_count
+
+def update_subproduct_programming(subproducto_id: int, data: SubproductProgrammingUpdate, session: Session):
+    logger.info(f"Updating programming for subproduct {subproducto_id}")
+
+    if data.ppr:
+        ppr_programacion = session.exec(select(ProgramacionPPR).where(ProgramacionPPR.id_subproducto == subproducto_id)).first()
+        if ppr_programacion:
+            if data.ppr.get('programado'):
+                for month, value in data.ppr['programado'].items():
+                    setattr(ppr_programacion, f'prog_{month}', float(value))
+            if data.ppr.get('ejecutado'):
+                for month, value in data.ppr['ejecutado'].items():
+                    setattr(ppr_programacion, f'ejec_{month}', float(value))
+            session.add(ppr_programacion)
+
+    session.commit()

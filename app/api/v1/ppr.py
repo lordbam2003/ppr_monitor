@@ -485,6 +485,7 @@ async def get_ppr_estructura(
                 
                 for subproducto in subproductos:
                     subproducto_structure = {
+                        "id_subproducto": subproducto.id_subproducto,
                         "codigo_subproducto": subproducto.codigo_subproducto,
                         "nombre_subproducto": subproducto.nombre_subproducto,
                         "unidad_medida": subproducto.unidad_medida,
