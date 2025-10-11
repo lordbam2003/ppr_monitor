@@ -152,17 +152,41 @@ class ComparisonService:
             )
         ).all()
         
-        # Join with subproducto to get names and codes
+        # Join with subproducto and programming data to get names, codes, and meta_anual
         results = []
+        months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'] # Define months here for use in filtering
         for diff in diferencias:
+            # Check if there are any non-zero differences for this subproduct
+            has_non_zero_diff = False
+            for month in months:
+                if (getattr(diff, f'dif_prog_{month}', 0) or 0) != 0 or (getattr(diff, f'dif_ejec_{month}', 0) or 0) != 0:
+                    has_non_zero_diff = True
+                    break
+            
+            if not has_non_zero_diff:
+                continue # Skip this subproduct if all differences are zero
+
             subproducto = session.get(Subproducto, diff.id_subproducto)
+            ppr_prog = session.exec(select(ProgramacionPPR).where(ProgramacionPPR.id_subproducto == diff.id_subproducto, ProgramacionPPR.anio == diff.anio)).first()
+            ceplan_prog = session.exec(select(ProgramacionCEPLAN).where(ProgramacionCEPLAN.id_subproducto == diff.id_subproducto, ProgramacionCEPLAN.anio == diff.anio)).first()
+
+            ceplan_meta_anual_calculated = 0
+            if ceplan_prog:
+                ceplan_meta_anual_calculated = sum([getattr(ceplan_prog, f'prog_{m}', 0) or 0 for m in months])
+
             results.append({
                 "id_diferencia": diff.id_diferencia,
                 "id_subproducto": diff.id_subproducto,
-                "codigo_subproducto": subproducto.codigo_subproducto,
-                "nombre_subproducto": subproducto.nombre_subproducto,
+                "codigo_subproducto": subproducto.codigo_subproducto if subproducto else None,
+                "nombre_subproducto": subproducto.nombre_subproducto if subproducto else None,
                 "anio": diff.anio,
                 "estado": diff.estado,
+                "ppr_meta_anual": ppr_prog.meta_anual if ppr_prog else 0,
+                "ceplan_meta_anual": ceplan_meta_anual_calculated,
+                "ppr_programado_mensual": {m: getattr(ppr_prog, f'prog_{m}', 0) or 0 for m in months} if ppr_prog else {m: 0 for m in months},
+                "ppr_ejecutado_mensual": {m: getattr(ppr_prog, f'ejec_{m}', 0) or 0 for m in months} if ppr_prog else {m: 0 for m in months},
+                "ceplan_programado_mensual": {m: getattr(ceplan_prog, f'prog_{m}', 0) or 0 for m in months} if ceplan_prog else {m: 0 for m in months},
+                "ceplan_ejecutado_mensual": {m: getattr(ceplan_prog, f'ejec_{m}', 0) or 0 for m in months} if ceplan_prog else {m: 0 for m in months},
                 "diferencias": {
                     "ene": {
                         "prog": diff.dif_prog_ene,

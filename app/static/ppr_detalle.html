@@ -31,9 +31,6 @@
                         <a class="nav-link" href="/ppr"><i class="fas fa-table me-1"></i> PPRs</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/transversal_data"><i class="fas fa-layer-group me-1"></i> Datos Transversales</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="/users"><i class="fas fa-users me-1"></i> Usuarios</a>
                     </li>
                     <li class="nav-item">
@@ -200,17 +197,49 @@
                                     <table class="table table-striped" id="comparisonTable">
                                         <thead class="table-dark">
                                             <tr>
-                                                <th>Código Subproducto</th>
-                                                <th>Nombre Subproducto</th>
-                                                <th>Año</th>
-                                                <th>Estado</th>
-                                                <th>Prog Ene</th>
-                                                <th>Ejec Ene</th>
-                                                <th>Prog Feb</th>
-                                                <th>Ejec Feb</th>
-                                                <th>Prog Mar</th>
-                                                <th>Ejec Mar</th>
-                                                <!-- We'll add more columns dynamically as needed -->
+                                                <th colspan="2" class="text-center">Subproducto</th>
+                                                <th rowspan="2" style="width: 5%;">Año</th>
+                                                <th rowspan="2" style="width: 10%;">Estado</th>
+                                                <th colspan="2" class="text-center">Ene</th>
+                                                <th colspan="2" class="text-center">Feb</th>
+                                                <th colspan="2" class="text-center">Mar</th>
+                                                <th colspan="2" class="text-center">Abr</th>
+                                                <th colspan="2" class="text-center">May</th>
+                                                <th colspan="2" class="text-center">Jun</th>
+                                                <th colspan="2" class="text-center">Jul</th>
+                                                <th colspan="2" class="text-center">Ago</th>
+                                                <th colspan="2" class="text-center">Sep</th>
+                                                <th colspan="2" class="text-center">Oct</th>
+                                                <th colspan="2" class="text-center">Nov</th>
+                                                <th colspan="2" class="text-center">Dic</th>
+                                            </tr>
+                                            <tr>
+                                                <th style="width: 10%;">Código</th>
+                                                <th style="width: 15%;">Nombre</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
                                             </tr>
                                         </thead>
                                         <tbody id="comparisonTableBody">
@@ -704,8 +733,9 @@
         function displayComparisonData(data) {
             const tbody = document.getElementById('comparisonTableBody');
             tbody.innerHTML = '';
+            const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
-            data.forEach(item => {
+            data.filter(item => item.ppr_meta_anual > 0 || item.ceplan_meta_anual > 0).forEach(item => {
                 const row = document.createElement('tr');
                 
                 // Determine row style based on status
@@ -735,12 +765,10 @@
                     <td>${item.nombre_subproducto || ''}</td>
                     <td><strong>${item.anio || ''}</strong></td>
                     <td>${statusBadge}</td>
-                    <td>${item.diferencias.ene.prog !== null && item.diferencias.ene.prog !== undefined ? parseFloat(item.diferencias.ene.prog).toFixed(2) : ''}</td>
-                    <td>${item.diferencias.ene.ejec !== null && item.diferencias.ene.ejec !== undefined ? parseFloat(item.diferencias.ene.ejec).toFixed(2) : ''}</td>
-                    <td>${item.diferencias.feb.prog !== null && item.diferencias.feb.prog !== undefined ? parseFloat(item.diferencias.feb.prog).toFixed(2) : ''}</td>
-                    <td>${item.diferencias.feb.ejec !== null && item.diferencias.feb.ejec !== undefined ? parseFloat(item.diferencias.feb.ejec).toFixed(2) : ''}</td>
-                    <td>${item.diferencias.mar.prog !== null && item.diferencias.mar.prog !== undefined ? parseFloat(item.diferencias.mar.prog).toFixed(2) : ''}</td>
-                    <td>${item.diferencias.mar.ejec !== null && item.diferencias.mar.ejec !== undefined ? parseFloat(item.diferencias.mar.ejec).toFixed(2) : ''}</td>
+                    ${months.map(month => `
+                        <td>${item.diferencias[month].prog !== null && item.diferencias[month].prog !== undefined ? parseFloat(item.diferencias[month].prog).toFixed(2) : '0'}</td>
+                        <td>${item.diferencias[month].ejec !== null && item.diferencias[month].ejec !== undefined ? parseFloat(item.diferencias[month].ejec).toFixed(2) : '0'}</td>
+                    `).join('')}
                 `;
                 
                 tbody.appendChild(row);
