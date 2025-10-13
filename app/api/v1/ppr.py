@@ -15,6 +15,7 @@ from app.models.programacion import ProgramacionPPR, ProgramacionCEPLAN
 from app.models.cartera_servicios import CarteraServicios
 from app.core.database import get_session
 from app.core.logging_config import get_logger
+from app.services.ppr_service import delete_ppr_data_by_year
 
 logger = get_logger(__name__)
 
@@ -254,6 +255,41 @@ async def delete_ppr(
         )
 
 
+@router.delete("/by-year/{year}", response_class=JSONResponse)
+async def delete_ppr_by_year(
+    year: int,
+    current_user: User = Depends(require_responsable_ppr),
+    session: Session = Depends(get_session)
+):
+    """
+    Eliminar todos los datos de PPR para un año específico.
+    """
+    try:
+        logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to delete all PPR data for year {year}")
+        
+        deleted_count = delete_ppr_data_by_year(year=year, session=session)
+        
+        if deleted_count == 0:
+            logger.warning(f"No PPR data found for year {year} to delete, requested by user {current_user.email}")
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"message": f"No se encontraron datos de PPR para el año {year}"}
+            )
+            
+        logger.info(f"Successfully deleted {deleted_count} PPRs for year {year} by user {current_user.email}")
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": f"Se eliminaron exitosamente {deleted_count} PPR(s) y todos sus datos asociados para el año {year}."}
+        )
+    except Exception as e:
+        logger.error(f"Error deleting PPR data for year {year} by user {current_user.email}: {str(e)}", exc_info=True)
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al eliminar los datos del PPR para el año {year}: {str(e)}"
+        )
+
+
 # Additional endpoints for PPR hierarchy management
 @router.get("/{ppr_id}/productos", response_class=JSONResponse)
 async def get_productos(
@@ -449,6 +485,7 @@ async def get_ppr_estructura(
                 
                 for subproducto in subproductos:
                     subproducto_structure = {
+                        "id_subproducto": subproducto.id_subproducto,
                         "codigo_subproducto": subproducto.codigo_subproducto,
                         "nombre_subproducto": subproducto.nombre_subproducto,
                         "unidad_medida": subproducto.unidad_medida,

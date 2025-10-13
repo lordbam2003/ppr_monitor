@@ -31,9 +31,6 @@
                         <a class="nav-link" href="/ppr"><i class="fas fa-table me-1"></i> PPRs</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/transversal_data"><i class="fas fa-layer-group me-1"></i> Datos Transversales</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="/users"><i class="fas fa-users me-1"></i> Usuarios</a>
                     </li>
                     <li class="nav-item">
@@ -200,17 +197,49 @@
                                     <table class="table table-striped" id="comparisonTable">
                                         <thead class="table-dark">
                                             <tr>
-                                                <th>Código Subproducto</th>
-                                                <th>Nombre Subproducto</th>
-                                                <th>Año</th>
-                                                <th>Estado</th>
-                                                <th>Prog Ene</th>
-                                                <th>Ejec Ene</th>
-                                                <th>Prog Feb</th>
-                                                <th>Ejec Feb</th>
-                                                <th>Prog Mar</th>
-                                                <th>Ejec Mar</th>
-                                                <!-- We'll add more columns dynamically as needed -->
+                                                <th colspan="2" class="text-center">Subproducto</th>
+                                                <th rowspan="2" style="width: 5%;">Año</th>
+                                                <th rowspan="2" style="width: 10%;">Estado</th>
+                                                <th colspan="2" class="text-center">Ene</th>
+                                                <th colspan="2" class="text-center">Feb</th>
+                                                <th colspan="2" class="text-center">Mar</th>
+                                                <th colspan="2" class="text-center">Abr</th>
+                                                <th colspan="2" class="text-center">May</th>
+                                                <th colspan="2" class="text-center">Jun</th>
+                                                <th colspan="2" class="text-center">Jul</th>
+                                                <th colspan="2" class="text-center">Ago</th>
+                                                <th colspan="2" class="text-center">Sep</th>
+                                                <th colspan="2" class="text-center">Oct</th>
+                                                <th colspan="2" class="text-center">Nov</th>
+                                                <th colspan="2" class="text-center">Dic</th>
+                                            </tr>
+                                            <tr>
+                                                <th style="width: 10%;">Código</th>
+                                                <th style="width: 15%;">Nombre</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
+                                                <th>Dif. Prog</th>
+                                                <th>Dif. Ejec</th>
                                             </tr>
                                         </thead>
                                         <tbody id="comparisonTableBody">
@@ -221,6 +250,25 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Subproduct Modal -->
+    <div class="modal fade" id="editSubproductModal" tabindex="-1" aria-labelledby="editSubproductModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editSubproductModalLabel">Editar Programación de Subproducto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="editSubproductModalBody">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveSubproductChangesBtn">Guardar Cambios</button>
                 </div>
             </div>
         </div>
@@ -363,6 +411,7 @@
                                                 <th style="width: 8%;">Fuente</th>
                                                 <th style="width: 4%;">Tipo</th>
                                                 ${months.map(m => `<th style="width: 4%;">${m.charAt(0).toUpperCase() + m.slice(1)}</th>`).join('')}
+                                                <th style="width: 6%;">Total</th>
                                                 <th style="width: 6%;">%</th>
                                             </tr>
                                         </thead>
@@ -370,8 +419,8 @@
                     `;
                     
                     actividad.subproductos.forEach(subproducto => {
-                        const hasPPR = subproducto.programacion_ppr;
-                        const hasCEPLAN = subproducto.programacion_ceplan;
+                        const hasPPR = subproducto.programacion_ppr && subproducto.programacion_ppr.meta_anual > 0;
+                        const hasCEPLAN = subproducto.programacion_ceplan && subproducto.programacion_ceplan.meta_anual > 0;
                         const totalRows = (hasPPR ? 2 : 0) + (hasCEPLAN ? 2 : 0);
 
                         if (!hasPPR && !hasCEPLAN) return;
@@ -380,6 +429,7 @@
 
                         if (hasPPR) {
                             const pprData = subproducto.programacion_ppr;
+                            const totalProgramado = Object.values(pprData.programado).reduce((a, b) => a + b, 0);
                             const totalEjecutado = Object.values(pprData.ejecutado).reduce((a, b) => a + b, 0);
                             const metaAnual = pprData.meta_anual || 0;
                             const porcentaje = metaAnual > 0 ? (totalEjecutado / metaAnual) * 100 : 0;
@@ -388,7 +438,7 @@
                             // PPR Programado Row
                             html += `<tr>`;
                             if (firstRow) {
-                                html += `<td class="align-middle" rowspan="${totalRows}">${subproducto.codigo_subproducto}</td>`;
+                                html += `<td class="align-middle" rowspan="${totalRows}">${subproducto.codigo_subproducto} <a href="#" onclick='openEditModal(${JSON.stringify(subproducto)})'><i class="fas fa-edit"></i></a></td>`;
                                 html += `<td class="align-middle" rowspan="${totalRows}">${subproducto.nombre_subproducto}</td>`;
                                 firstRow = false;
                             }
@@ -396,6 +446,7 @@
                             html += `<td class="align-middle fw-bold text-primary" rowspan="2">PPR</td>`;
                             html += `<td class="table-primary text-center fw-bold">P</td>`;
                             months.forEach(month => { html += `<td class="table-primary">${pprData.programado[month] || 0}</td>`; });
+                            html += `<td class="table-primary fw-bold">${totalProgramado}</td>`;
                             html += `<td class="align-middle" rowspan="2"><span class="badge bg-${color}" title="${tooltip}"><i class="${icon}"></i> ${porcentaje.toFixed(2)}%</span></td>`;
                             html += `</tr>`;
 
@@ -403,11 +454,13 @@
                             html += `<tr>`;
                             html += `<td class="table-warning text-center fw-bold">E</td>`;
                             months.forEach(month => { html += `<td class="table-warning">${pprData.ejecutado[month] || 0}</td>`; });
+                            html += `<td class="table-warning fw-bold">${totalEjecutado}</td>`;
                             html += `</tr>`;
                         }
 
                         if (hasCEPLAN) {
                             const ceplanData = subproducto.programacion_ceplan;
+                            const totalProgramado = Object.values(ceplanData.programado).reduce((a, b) => a + b, 0);
                             const totalEjecutado = Object.values(ceplanData.ejecutado).reduce((a, b) => a + b, 0);
                             const metaAnual = ceplanData.meta_anual || 0;
                             const porcentaje = metaAnual > 0 ? (totalEjecutado / metaAnual) * 100 : 0;
@@ -424,6 +477,7 @@
                             html += `<td class="align-middle fw-bold text-success" rowspan="2">CEPLAN</td>`;
                             html += `<td class="table-primary text-center fw-bold">P</td>`;
                             months.forEach(month => { html += `<td class="table-primary">${ceplanData.programado[month] || 0}</td>`; });
+                            html += `<td class="table-primary fw-bold">${totalProgramado}</td>`;
                             html += `<td class="align-middle" rowspan="2"><span class="badge bg-${color}" title="${tooltip}"><i class="${icon}"></i> ${porcentaje.toFixed(2)}%</span></td>`;
                             html += `</tr>`;
 
@@ -431,6 +485,7 @@
                             html += `<tr>`;
                             html += `<td class="table-warning text-center fw-bold">E</td>`;
                             months.forEach(month => { html += `<td class="table-warning">${ceplanData.ejecutado[month] || 0}</td>`; });
+                            html += `<td class="table-warning fw-bold">${totalEjecutado}</td>`;
                             html += `</tr>`;
                         }
                     });
@@ -678,8 +733,9 @@
         function displayComparisonData(data) {
             const tbody = document.getElementById('comparisonTableBody');
             tbody.innerHTML = '';
+            const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
-            data.forEach(item => {
+            data.filter(item => item.ppr_meta_anual > 0 || item.ceplan_meta_anual > 0).forEach(item => {
                 const row = document.createElement('tr');
                 
                 // Determine row style based on status
@@ -709,12 +765,10 @@
                     <td>${item.nombre_subproducto || ''}</td>
                     <td><strong>${item.anio || ''}</strong></td>
                     <td>${statusBadge}</td>
-                    <td>${item.diferencias.ene.prog !== null && item.diferencias.ene.prog !== undefined ? parseFloat(item.diferencias.ene.prog).toFixed(2) : ''}</td>
-                    <td>${item.diferencias.ene.ejec !== null && item.diferencias.ene.ejec !== undefined ? parseFloat(item.diferencias.ene.ejec).toFixed(2) : ''}</td>
-                    <td>${item.diferencias.feb.prog !== null && item.diferencias.feb.prog !== undefined ? parseFloat(item.diferencias.feb.prog).toFixed(2) : ''}</td>
-                    <td>${item.diferencias.feb.ejec !== null && item.diferencias.feb.ejec !== undefined ? parseFloat(item.diferencias.feb.ejec).toFixed(2) : ''}</td>
-                    <td>${item.diferencias.mar.prog !== null && item.diferencias.mar.prog !== undefined ? parseFloat(item.diferencias.mar.prog).toFixed(2) : ''}</td>
-                    <td>${item.diferencias.mar.ejec !== null && item.diferencias.mar.ejec !== undefined ? parseFloat(item.diferencias.mar.ejec).toFixed(2) : ''}</td>
+                    ${months.map(month => `
+                        <td>${item.diferencias[month].prog !== null && item.diferencias[month].prog !== undefined ? parseFloat(item.diferencias[month].prog).toFixed(2) : '0'}</td>
+                        <td>${item.diferencias[month].ejec !== null && item.diferencias[month].ejec !== undefined ? parseFloat(item.diferencias[month].ejec).toFixed(2) : '0'}</td>
+                    `).join('')}
                 `;
                 
                 tbody.appendChild(row);
@@ -722,6 +776,63 @@
 
             document.getElementById('comparisonLoading').style.display = 'none';
             document.getElementById('comparisonData').style.display = 'block';
+        }
+
+        function openEditModal(subproducto) {
+            const modal = new bootstrap.Modal(document.getElementById('editSubproductModal'));
+            const modalBody = document.getElementById('editSubproductModalBody');
+            const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            const currentMonth = new Date().getMonth(); // 0-11
+
+            let html = `<h5>${subproducto.nombre_subproducto}</h5>`;
+
+            if (subproducto.programacion_ppr) {
+                html += '<h6>PPR</h6>';
+                html += '<table class="table table-sm"><thead><tr><th>Mes</th><th>Programado</th><th>Ejecutado</th></tr></thead><tbody>';
+                for (let i = currentMonth; i < months.length; i++) {
+                    const month = months[i];
+                    html += `<tr>
+                                <td>${month.toUpperCase()}</td>
+                                <td><input type="number" class="form-control form-control-sm" id="ppr-prog-${month}" value="${subproducto.programacion_ppr.programado[month]}"></td>
+                                <td><input type="number" class="form-control form-control-sm" id="ppr-ejec-${month}" value="${subproducto.programacion_ppr.ejecutado[month]}"></td>
+                             </tr>`;
+                }
+                html += '</tbody></table>';
+            }
+
+            modalBody.innerHTML = html;
+            document.getElementById('saveSubproductChangesBtn').onclick = () => saveSubproductChanges(subproducto.id_subproducto);
+            modal.show();
+        }
+
+        async function saveSubproductChanges(subproductoId) {
+            const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            const currentMonth = new Date().getMonth();
+            const payload = {
+                ppr: { programado: {}, ejecutado: {} }
+            };
+
+            for (let i = currentMonth; i < months.length; i++) {
+                const month = months[i];
+                if (document.getElementById(`ppr-prog-${month}`)) {
+                    payload.ppr.programado[month] = document.getElementById(`ppr-prog-${month}`).value;
+                    payload.ppr.ejecutado[month] = document.getElementById(`ppr-ejec-${month}`).value;
+                }
+            }
+
+            try {
+                showLoading('Guardando cambios...');
+                await callAPI(`/programacion/subproducto/${subproductoId}`, 'PUT', payload);
+                hideLoading();
+                showSuccess('Cambios guardados exitosamente');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editSubproductModal'));
+                modal.hide();
+                loadPPRDetalle(pprId);
+            } catch (error) {
+                hideLoading();
+                showError('Error al guardar los cambios.');
+                console.error('Error saving subproduct changes:', error);
+            }
         }
 
     </script>
