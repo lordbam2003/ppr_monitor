@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Actualizar Avance de Subproducto</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-med: #0d6efd;
+      --light-bg: #f8f9fa;
+    }
+
+    body {
+      background-color: #f5f7fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .card-header {
+      background-color: #ffffff;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .info-value {
+      color: #212529;
+    }
+
+    .form-label {
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-med);
+      border-color: var(--primary-med);
+    }
+
+    .btn-outline-secondary {
+      border-color: #6c757d;
+      color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+          <div class="card-header py-3">
+            <h4 class="mb-0">📝 Actualizar Avance de Subproducto</h4>
+          </div>
+          <div class="card-body">
+
+            <!-- Información del subproducto -->
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <span class="info-label">Subproducto:</span>
+              </div>
+              <div class="col-md-9">
+                <span class="info-value">Niños con vacunas completas (Edad < 1 año)</span>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <span class="info-label">PPR:</span>
+              </div>
+              <div class="col-md-9">
+                <span class="info-value">Articulado Nutricional</span>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <span class="info-label">Meta Programada (Octubre):</span>
+              </div>
+              <div class="col-md-9">
+                <span class="info-value">300</span>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <span class="info-label">Avance Actual Registrado:</span>
+              </div>
+              <div class="col-md-9">
+                <span class="info-value">150</span>
+              </div>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-3">
+                <span class="info-label">Brecha Actual:</span>
+              </div>
+              <div class="col-md-9">
+                <span class="info-value text-danger">150</span>
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Formulario de nuevo avance -->
+            <h5 class="mb-3">REGISTRAR NUEVO AVANCE (Ingresar solo el nuevo conteo)</h5>
+
+            <div class="mb-3">
+              <label for="avanceSumar" class="form-label">
+                [+] Avance a Sumar:
+              </label>
+              <div class="input-group" style="max-width: 200px;">
+                <input type="number" class="form-control" id="avanceSumar" value="25" min="0">
+              </div>
+              <div class="form-text">
+                Ej: N° de niños vacunados hoy según HIS/hojas de registro
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="observaciones" class="form-label">Observaciones (Opcional):</label>
+              <textarea class="form-control" id="observaciones" rows="3" placeholder="Se realizó campaña en el AA.HH. &quot;La Esperanza&quot;.">Se realizó campaña en el AA.HH. "La Esperanza".</textarea>
+            </div>
+
+            <!-- Botones -->
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-outline-secondary">Cancelar</button>
+              <button type="button" class="btn btn-primary">Guardar Avance</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS (opcional) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

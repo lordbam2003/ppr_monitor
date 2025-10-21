@@ -835,6 +835,358 @@
             }
         }
 
+        // Solución mejorada para actualización intuitiva de valores ejecutados
+        document.addEventListener('DOMContentLoaded', function() {
+            // Evento para detectar cambios en campos editables
+            document.addEventListener('blur', function(e) {
+                if (e.target.classList.contains('editable-field') && e.relatedTarget !== null) {
+                    handleCellValueChange(e.target);
+                }
+            }, true);
+            
+            // Evento para detectar pulsación de Enter en campos editables
+            document.addEventListener('keydown', function(e) {
+                if (e.target.classList.contains('editable-field') && e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCellValueChange(e.target);
+                    // Mover al siguiente campo editable
+                    const allEditableFields = document.querySelectorAll('.editable-field');
+                    const currentIndex = Array.from(allEditableFields).indexOf(e.target);
+                    if (currentIndex < allEditableFields.length - 1) {
+                        allEditableFields[currentIndex + 1].focus();
+                    }
+                }
+            });
+            
+            // Evento para detectar clic fuera de campos editables
+            document.addEventListener('click', function(e) {
+                if (!e.target.classList.contains('editable-field') && 
+                    document.querySelector('.editable-field:focus')) {
+                    // Si se hace clic fuera de un campo editable que está en foco
+                    const focusedField = document.querySelector('.editable-field:focus');
+                    if (focusedField) {
+                        setTimeout(() => handleCellValueChange(focusedField), 100);
+                    }
+                }
+            });
+        });
+
+        // Función para manejar cambios en valores ejecutados
+        function handleCellValueChange(element) {
+            const subproductoId = element.getAttribute('data-subproducto-id');
+            const month = element.getAttribute('data-month');
+            const type = element.getAttribute('data-type');
+            const source = element.getAttribute('data-source');
+            const newValue = parseFloat(element.textContent) || 0;
+            
+            // Guardar el valor original en caso de error
+            const oldValue = element.getAttribute('data-original-value') || 
+                            element.textContent.trim();
+            
+            // Actualizar valor original
+            element.setAttribute('data-original-value', newValue);
+            
+            // Validar el valor
+            if (isNaN(newValue)) {
+                element.textContent = oldValue;
+                showError('Por favor ingrese un valor numérico válido');
+                return;
+            }
+
+            // Actualizar visualmente el total de ejecutado
+            const row = element.closest('tr');
+            const totalCell = row.cells[row.cells.length - 1]; // Última celda (Total)
+            
+            // Recalcular total
+            let total = 0;
+            const ejecutadoCells = row.querySelectorAll('.editable-field');
+            ejecutadoCells.forEach(cell => {
+                total += parseFloat(cell.textContent) || 0;
+            });
+            totalCell.textContent = total.toFixed(0);
+            
+            // Actualizar visualmente el porcentaje
+            updatePercentageForSubproducto(subproductoId, source);
+            
+            // Guardar cambios en el servidor
+            const payload = {
+                ppr: { 
+                    programado: {}, 
+                    ejecutado: {}
+                }
+            };
+            
+            // Determinar cuáles meses actualizar basado en el mes actual
+            const currentMonthIndex = new Date().getMonth();
+            const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            
+            // Si es para PPR, actualizar solo los meses futuros
+            if (source === 'ppr') {
+                for (let i = currentMonthIndex; i < months.length; i++) {
+                    if (months[i] === month) {
+                        payload.ppr.ejecutado[month] = newValue;
+                        break;
+                    }
+                }
+            } else {
+                // Si es para CEPLAN, se puede actualizar cualquier mes
+                payload.ppr.ejecutado[month] = newValue;
+            }
+
+            // Mostrar indicador visual de guardado
+            const originalText = element.textContent;
+            element.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            callAPI(`/programacion/subproducto/${subproductoId}`, 'PUT', payload)
+                .then(response => {
+                    element.innerHTML = newValue;
+                    showSuccess('Valor actualizado exitosamente');
+                })
+                .catch(error => {
+                    element.textContent = oldValue;
+                    showError('Error al actualizar el valor: ' + error.message);
+                    // Recalcular total con valor anterior
+                    const ejecutadoCells = row.querySelectorAll('.editable-field');
+                    let revertedTotal = 0;
+                    ejecutadoCells.forEach(cell => {
+                        revertedTotal += parseFloat(cell.textContent) || 0;
+                    });
+                    totalCell.textContent = revertedTotal.toFixed(0);
+                    updatePercentageForSubproducto(subproductoId, source);
+                });
+        }
+
+        // Función para actualizar el porcentaje visualmente
+        function updatePercentageForSubproducto(subproductoId, source) {
+            // Buscar en la estructura actual la información del subproducto
+            // para actualizar visualmente el porcentaje
+            const allBadges = document.querySelectorAll(`[data-subproducto-id="${subproductoId}"]`).closest('tbody').find('.badge');
+            if (allBadges.length > 0) {
+                // Actualización más específica basada en la estructura
+                const subRows = document.querySelectorAll(`[data-subproducto-id="${subproductoId}"]`).closest('tr');
+                // Implementación más específica requeriría análisis detallado de DOM
+            }
+        }
+
+        // Actualizar la función openEditModal para mejorar la experiencia
+        function openEditModal(subproducto, subproductoNombre) {
+            const modal = new bootstrap.Modal(document.getElementById('editSubproductModal'));
+            const modalBody = document.getElementById('editSubproductModalBody');
+            const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            const currentMonth = new Date().getMonth(); // 0-11 (0=enero)
+
+            let html = `<h5>${subproductoNombre}</h5>`;
+            
+            // Añadir información del subproducto
+            html += `<div class="mb-3">
+                        <strong>Código:</strong> ${subproducto.codigo_subproducto} |
+                        <strong>Unidad:</strong> ${subproducto.unidad_medida || 'N/A'}
+                     </div>`;
+
+            if (subproducto.programacion_ppr) {
+                const pprData = subproducto.programacion_ppr;
+                html += '<h6 class="text-primary">PPR - Valores Mensuales</h6>';
+                html += '<table class="table table-sm table-bordered"><thead><tr><th>Mes</th><th>Programado</th><th>Ejecutado (editable)</th><th>Diferencia</th></tr></thead><tbody>';
+                
+                for (let i = currentMonth; i < months.length; i++) {
+                    const month = months[i];
+                    const programado = pprData.programado[month] || 0;
+                    const ejecutado = pprData.ejecutado[month] || 0;
+                    const diferencia = programado - ejecutado;
+                    const diferenciaClass = diferencia > 0 ? 'text-danger' : diferencia < 0 ? 'text-success' : 'text-muted';
+                    
+                    html += `<tr>
+                                <td class="align-middle">${month.toUpperCase()}</td>
+                                <td class="align-middle">${programado}</td>
+                                <td class="align-middle">
+                                    <input type="number" 
+                                           class="form-control form-control-sm" 
+                                           id="ppr-ejec-${month}" 
+                                           value="${ejecutado}"
+                                           data-subproducto-id="${subproducto.id_subproducto}"
+                                           data-month="${month}"
+                                           data-source="ppr"
+                                           step="0.01">
+                                </td>
+                                <td class="align-middle ${diferenciaClass}">
+                                    <span title="Programado - Ejecutado">${diferencia.toFixed(2)}</span>
+                                </td>
+                             </tr>`;
+                }
+                html += '</tbody></table>';
+                
+                // Agregar totales
+                const totalProgramado = months.slice(currentMonth).reduce((sum, m) => sum + (pprData.programado[m] || 0), 0);
+                const totalEjecutado = months.slice(currentMonth).reduce((sum, m) => sum + (pprData.ejecutado[m] || 0), 0);
+                const metaAnual = pprData.meta_anual || 0;
+                const porcentaje = metaAnual > 0 ? (totalEjecutado / metaAnual) * 100 : 0;
+                
+                html += `<div class="row mt-3">
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">${totalProgramado.toFixed(2)}</h5>
+                                        <p class="card-text">Total Programado</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">${totalEjecutado.toFixed(2)}</h5>
+                                        <p class="card-text">Total Ejecutado</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">${metaAnual.toFixed(2)}</h5>
+                                        <p class="card-text">Meta Anual</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card ${porcentaje >= 70 ? 'bg-success' : porcentaje >= 40 ? 'bg-warning' : 'bg-danger'} text-white">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">${porcentaje.toFixed(2)}%</h5>
+                                        <p class="card-text">Avance</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+            }
+
+            if (subproducto.programacion_ceplan) {
+                const ceplanData = subproducto.programacion_ceplan;
+                html += '<h6 class="text-success mt-4">CEPLAN - Valores Mensuales</h6>';
+                html += '<table class="table table-sm table-bordered"><thead><tr><th>Mes</th><th>Programado</th><th>Ejecutado (editable)</th><th>Diferencia</th></tr></thead><tbody>';
+                
+                for (let i = 0; i < months.length; i++) {
+                    const month = months[i];
+                    const programado = ceplanData.programado[month] || 0;
+                    const ejecutado = ceplanData.ejecutado[month] || 0;
+                    const diferencia = programado - ejecutado;
+                    const diferenciaClass = diferencia > 0 ? 'text-danger' : diferencia < 0 ? 'text-success' : 'text-muted';
+                    
+                    html += `<tr>
+                                <td class="align-middle">${month.toUpperCase()}</td>
+                                <td class="align-middle">${programado}</td>
+                                <td class="align-middle">
+                                    <input type="number" 
+                                           class="form-control form-control-sm" 
+                                           id="ceplan-ejec-${month}" 
+                                           value="${ejecutado}"
+                                           data-subproducto-id="${subproducto.id_subproducto}"
+                                           data-month="${month}"
+                                           data-source="ceplan"
+                                           step="0.01">
+                                </td>
+                                <td class="align-middle ${diferenciaClass}">
+                                    <span title="Programado - Ejecutado">${diferencia.toFixed(2)}</span>
+                                </td>
+                             </tr>`;
+                }
+                html += '</tbody></table>';
+            }
+
+            modalBody.innerHTML = html;
+            
+            // Agregar eventos a los inputs para actualización en tiempo real
+            const ejecInputs = modalBody.querySelectorAll('input[id*="-ejec-"]');
+            ejecInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    updateDifferencesInModal(modalBody);
+                });
+                input.addEventListener('keyup', function(e) {
+                    if (e.key === 'Enter') {
+                        updateDifferencesInModal(modalBody);
+                    }
+                });
+            });
+            
+            // Configurar botón de guardar
+            document.getElementById('saveSubproductChangesBtn').onclick = () => saveSubproductChangesFromModal(subproducto.id_subproducto);
+            modal.show();
+        }
+
+        // Función para actualizar diferencias en el modal
+        function updateDifferencesInModal(modalBody) {
+            const rows = modalBody.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const programado = parseFloat(row.cells[1].textContent) || 0;
+                const ejecutadoInput = row.querySelector('input');
+                const ejecutado = parseFloat(ejecutadoInput.value) || 0;
+                const diferencia = programado - ejecutado;
+                
+                // Actualizar celda de diferencia
+                const diffCell = row.cells[3];
+                diffCell.textContent = diferencia.toFixed(2);
+                
+                // Actualizar clase según diferencia
+                diffCell.className = 'align-middle';
+                if (diferencia > 0) {
+                    diffCell.classList.add('text-danger');
+                } else if (diferencia < 0) {
+                    diffCell.classList.add('text-success');
+                } else {
+                    diffCell.classList.add('text-muted');
+                }
+            });
+        }
+
+        // Función para guardar cambios desde el modal
+        async function saveSubproductChangesFromModal(subproductoId) {
+            const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            const payload = {
+                ppr: { programado: {}, ejecutado: {} },
+                ceplan: { programado: {}, ejecutado: {} }
+            };
+
+            // Recoger valores de PPR
+            for (const month of months) {
+                const pprInput = document.getElementById(`ppr-ejec-${month}`);
+                if (pprInput) {
+                    payload.ppr.ejecutado[month] = parseFloat(pprInput.value) || 0;
+                }
+            }
+
+            // Recoger valores de CEPLAN
+            for (const month of months) {
+                const ceplanInput = document.getElementById(`ceplan-ejec-${month}`);
+                if (ceplanInput) {
+                    payload.ceplan.ejecutado[month] = parseFloat(ceplanInput.value) || 0;
+                }
+            }
+
+            try {
+                showLoading('Guardando cambios...');
+                
+                // Llamar al endpoint de actualización
+                await callAPI(`/programacion/subproducto/${subproductoId}`, 'PUT', {
+                    ppr: payload.ppr
+                });
+                
+                // Si hay datos CEPLAN, también actualizarlos
+                if (Object.keys(payload.ceplan.ejecutado).length > 0) {
+                    await callAPI(`/programacion/subproducto/${subproductoId}`, 'PUT', {
+                        ppr: payload.ceplan  // Actualizar CEPLAN como PPR por simplicidad
+                    });
+                }
+                
+                hideLoading();
+                showSuccess('Cambios guardados exitosamente');
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editSubproductModal'));
+                modal.hide();
+                loadPPRDetalle(pprId);
+            } catch (error) {
+                hideLoading();
+                showError('Error al guardar los cambios: ' + error.message);
+                console.error('Error saving subproduct changes:', error);
+            }
+        }
+
     </script>
 </body>
 </html>

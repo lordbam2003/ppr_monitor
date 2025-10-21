@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     
     # Configuración de base de datos - MariaDB para desarrollo
-    database_url: str = "mariadb+pymysql://root:studio92@localhost:3306/monitor_ppr"  # Configuración para MariaDB
+    database_url: str = "mariadb+pymysql://root:@localhost:3306/monitor_ppr"  # Configuración para MariaDB
     db_echo: bool = False  # Cambiar a True para ver consultas SQL en consola
     
     # Configuración de autenticación

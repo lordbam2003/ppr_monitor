@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
-from typing import List
+from typing import List, Optional
+from pydantic import BaseModel
 
 from app.core.security import get_current_active_user, get_password_hash
 from app.core.database import get_session
@@ -213,12 +214,8 @@ async def update_user(
             from app.models.user import get_role_internal_name
             internal_role = get_role_internal_name(value)
             setattr(user, field, internal_role)
-        elif field != "password":  # Handle password separately if needed
+        else:
             setattr(user, field, value)
-    
-    # If password is being updated
-    if user_data.password:
-        user.hashed_password = get_password_hash(user_data.password)
     
     session.add(user)
     session.commit()
@@ -272,3 +269,60 @@ async def delete_user(
     
     logger.info(f"Successfully deleted user {user.email} by admin {current_user.email}")
     return {"message": "Usuario eliminado exitosamente"}
+
+
+class PasswordUpdate(BaseModel):
+    current_password: Optional[str] = None
+    new_password: str
+
+
+@router.put("/{user_id}/password")
+async def update_user_password(
+    user_id: int,
+    password_data: PasswordUpdate,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """
+    Actualizar contraseña de usuario por ID
+    - Solo administradores pueden cambiar cualquier contraseña
+    - Usuarios pueden cambiar su propia contraseña si proporcionan la actual
+    """
+    logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to update password for user with ID {user_id}")
+    
+    target_user = session.get(User, user_id)
+    if not target_user:
+        logger.warning(f"Attempt to update password for non-existent user {user_id} by user {current_user.email}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    # Check permissions
+    is_admin = is_admin_role(current_user.rol)
+    is_own_account = current_user.id_usuario == target_user.id_usuario
+    
+    if not is_admin and not (is_own_account and password_data.current_password):
+        logger.warning(f"User {current_user.email} attempted to change password without proper permissions for user {target_user.email}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tiene permisos para cambiar esta contraseña"
+        )
+    
+    # If it's not an admin changing the password, verify current password
+    if not is_admin and password_data.current_password:
+        from app.core.security import verify_password
+        if not verify_password(password_data.current_password, target_user.hashed_password):
+            logger.warning(f"Incorrect current password provided by user {current_user.email} for password change")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Contraseña actual incorrecta"
+            )
+    
+    # Update password
+    target_user.hashed_password = get_password_hash(password_data.new_password)
+    session.add(target_user)
+    session.commit()
+    
+    logger.info(f"Successfully updated password for user {target_user.email} by user {current_user.email}")
+    return {"message": "Contraseña actualizada exitosamente"}
