@@ -326,3 +326,21 @@ async def update_user_password(
     
     logger.info(f"Successfully updated password for user {target_user.email} by user {current_user.email}")
     return {"message": "Contraseña actualizada exitosamente"}
+
+
+@router.get("/current-role", response_model=dict)
+async def get_current_user_role(
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Obtener el rol del usuario actual
+    """
+    logger.info(f"User {current_user.nombre} ({current_user.email}) requested their role information")
+    
+    return {
+        "rol": current_user.rol,
+        "rol_display": get_role_display_name(current_user.rol),
+        "user_id": current_user.id_usuario,
+        "nombre": current_user.nombre,
+        "email": current_user.email
+    }

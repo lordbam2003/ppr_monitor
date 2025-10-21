@@ -134,6 +134,57 @@ def create_app() -> FastAPI:
             app_logger.error(f"Error accessing transversal data page: {str(e)}", exc_info=True)
             raise
 
+    # Ruta para dashboard del administrador
+    @app.get("/dashboard_admin", response_class=HTMLResponse)
+    async def read_dashboard_admin():
+        try:
+            with open(Path(__file__).parent / "static" / "dashboard_admin.html", "r", encoding="utf-8") as file:
+                content = file.read()
+            app_logger.info("Admin dashboard page accessed successfully")
+            return HTMLResponse(content=content)
+        except Exception as e:
+            app_logger.error(f"Error accessing admin dashboard page: {str(e)}", exc_info=True)
+            raise
+
+    # Ruta para dashboard del responsable PPR
+    @app.get("/dashboard_responsable_ppr", response_class=HTMLResponse)
+    async def read_dashboard_responsable_ppr():
+        try:
+            with open(Path(__file__).parent / "static" / "dashboard_responsable_ppr.html", "r", encoding="utf-8") as file:
+                content = file.read()
+            app_logger.info("PPR Responsible dashboard page accessed successfully")
+            return HTMLResponse(content=content)
+        except Exception as e:
+            app_logger.error(f"Error accessing PPR Responsible dashboard page: {str(e)}", exc_info=True)
+            raise
+
+    # Ruta para dashboard del responsable de planificación
+    @app.get("/dashboard_responsable_planificacion", response_class=HTMLResponse)
+    async def read_dashboard_responsable_planificacion():
+        try:
+            with open(Path(__file__).parent / "static" / "dashboard_responsable_planificacion.html", "r", encoding="utf-8") as file:
+                content = file.read()
+            app_logger.info("Planning Responsible dashboard page accessed successfully")
+            return HTMLResponse(content=content)
+        except Exception as e:
+            app_logger.error(f"Error accessing Planning Responsible dashboard page: {str(e)}", exc_info=True)
+            raise
+
+    # Ruta raíz redirige al dashboard según rol (si está autenticado)
+    @app.get("/", response_class=HTMLResponse)
+    async def read_root():
+        try:
+            # El comportamiento dependerá de si el usuario está autenticado
+            # Si está autenticado, redirigimos al dashboard correspondiente
+            # Si no, mostramos la página de inicio
+            with open(Path(__file__).parent / "static" / "index.html", "r", encoding="utf-8") as file:
+                content = file.read()
+            app_logger.info("Home page accessed successfully")
+            return HTMLResponse(content=content)
+        except Exception as e:
+            app_logger.error(f"Error accessing home page: {str(e)}", exc_info=True)
+            raise
+
     @app.on_event("startup")
     async def startup_event():
         app_logger.info("Application started successfully")

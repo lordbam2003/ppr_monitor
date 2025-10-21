@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Administrador - Sistema de Monitoreo</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="/static/css/fontawesome.min.css">
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="/static/css/sweetalert2.min.css">
+  
+  <style>
+    :root {
+      --primary-med: #0d6efd;
+      --success-med: #198754;
+      --warning-med: #ffc107;
+      --danger-med: #dc3545;
+      --light-bg: #f8f9fa;
+    }
+
+    body {
+      background-color: #f5f7fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .navbar-brand {
+      font-weight: 600;
+      color: #0d6efd !important;
+    }
+
+    .card-dashboard {
+      border: none;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+      transition: transform 0.2s;
+    }
+
+    .card-dashboard:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+
+    .progress {
+      height: 10px;
+      border-radius: 5px;
+    }
+
+    .status-green { color: var(--success-med); font-weight: bold; }
+    .status-yellow { color: var(--warning-med); font-weight: bold; }
+    .status-red { color: var(--danger-med); font-weight: bold; }
+
+    .table th {
+      background-color: #e9ecef;
+      font-weight: 600;
+    }
+
+    .btn-logout {
+      background: none;
+      border: none;
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+    .btn-logout:hover {
+      color: #0d6efd;
+      text-decoration: underline;
+    }
+
+    .filter-select {
+      min-width: 220px;
+    }
+    
+    /* Estilos para el navbar */
+    .navbar-nav .nav-link.active {
+      font-weight: 600;
+    }
+    
+    .stats-card {
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .stats-card i {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar Superior -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary border-bottom px-4 py-2">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+      <a class="navbar-brand" href="/">
+        <i class="fas fa-chart-line me-2"></i>
+        Monitor PPR
+      </a>
+      <div class="d-flex align-items-center">
+        <div class="dropdown">
+          <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+            <i class="fas fa-user me-2"></i><span id="userDisplayName">Usuario</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" id="viewProfileLink"><i class="fas fa-user-circle me-2"></i>Ver Perfil</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" id="logoutButton"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Sidebar de Navegación -->
+  <div class="container-fluid">
+    <div class="row">
+      <nav class="col-md-2 d-md-block bg-light sidebar">
+        <div class="position-sticky pt-3">
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a class="nav-link active" href="/dashboard_admin">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/ppr">
+                <i class="fas fa-table me-2"></i>Gestión de PPRs
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/users">
+                <i class="fas fa-users me-2"></i>Gestión de Usuarios
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/reports">
+                <i class="fas fa-chart-bar me-2"></i>Reportes
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/transversal_data">
+                <i class="fas fa-layer-group me-2"></i>Datos Transversales
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/comparison">
+                <i class="fas fa-exchange-alt me-2"></i>Comparación PPR-CEPLAN
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/upload/ppr">
+                <i class="fas fa-upload me-2"></i>Carga de Datos
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <!-- Contenido Principal -->
+      <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+        <!-- Filtros -->
+        <div class="mb-4 d-flex flex-wrap gap-2 align-items-end">
+          <div>
+            <label for="periodoSelect" class="form-label fw-bold">Periodo:</label>
+            <select id="periodoSelect" class="form-select filter-select">
+              <option>Octubre 2025</option>
+              <option>Septiembre 2025</option>
+              <option>Agosto 2025</option>
+              <option>Julio 2025</option>
+            </select>
+          </div>
+          <div>
+            <label for="unidadSelect" class="form-label fw-bold">Unidad Funcional:</label>
+            <select id="unidadSelect" class="form-select filter-select">
+              <option>Todos</option>
+              <option>Hospital Central</option>
+              <option>Clínica Norte</option>
+              <option>Centro Salud Este</option>
+            </select>
+          </div>
+          <div class="mt-3 mt-md-0">
+            <button class="btn btn-outline-secondary" id="resetFilters">Ver Todo</button>
+          </div>
+        </div>
+
+        <!-- Métricas Principales -->
+        <div class="row mb-4">
+          <!-- Total PPRs -->
+          <div class="col-md-3 mb-3">
+            <div class="card stats-card card-dashboard h-100 bg-primary text-white">
+              <i class="fas fa-table"></i>
+              <h3 class="mb-1" id="totalPPRs">0</h3>
+              <p class="mb-0">Total PPRs</p>
+            </div>
+          </div>
+          
+          <!-- Total Usuarios -->
+          <div class="col-md-3 mb-3">
+            <div class="card stats-card card-dashboard h-100 bg-success text-white">
+              <i class="fas fa-users"></i>
+              <h3 class="mb-1" id="totalUsuarios">0</h3>
+              <p class="mb-0">Total Usuarios</p>
+            </div>
+          </div>
+
+          <!-- Cumplimiento General -->
+          <div class="col-md-3 mb-3">
+            <div class="card stats-card card-dashboard h-100 bg-info text-white">
+              <i class="fas fa-chart-line"></i>
+              <h3 class="mb-1" id="cumplimientoGeneral">0%</h3>
+              <p class="mb-0">Cumplimiento General</p>
+            </div>
+          </div>
+
+          <!-- PPRs con Desviación -->
+          <div class="col-md-3 mb-3">
+            <div class="card stats-card card-dashboard h-100 bg-warning text-dark">
+              <i class="fas fa-exclamation-triangle"></i>
+              <h3 class="mb-1" id="pprsConDesviacion">0</h3>
+              <p class="mb-0">PPRs con Desviación</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de PPRs principales -->
+        <div class="row mb-4">
+          <!-- PPRs con Mayor Desviación -->
+          <div class="col-md-6 mb-4">
+            <div class="card card-dashboard">
+              <div class="card-header bg-white">
+                <h5 class="mb-0">PPRs con Mayor Desviación</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th>PPR</th>
+                        <th>UNIDAD</th>
+                        <th>CUMPLIMIENTO</th>
+                        <th>DESVIACIÓN</th>
+                        <th>ACCIÓN</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pprsDesviacionBody">
+                      <!-- Los datos se llenarán dinámicamente -->
+                      <tr>
+                        <td colspan="5" class="text-center">Cargando datos...</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Usuarios con Actividad Reciente -->
+          <div class="col-md-6 mb-4">
+            <div class="card card-dashboard">
+              <div class="card-header bg-white">
+                <h5 class="mb-0">Usuarios con Actividad Reciente</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th>USUARIO</th>
+                        <th>ROL</th>
+                        <th>ÚLTIMA ACTIVIDAD</th>
+                        <th>PPRs ASIGNADOS</th>
+                        <th>ESTADO</th>
+                      </tr>
+                    </thead>
+                    <tbody id="usuariosActivosBody">
+                      <!-- Los datos se llenarán dinámicamente -->
+                      <tr>
+                        <td colspan="5" class="text-center">Cargando datos...</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparación PPR vs CEPLAN -->
+        <div class="card card-dashboard mb-4">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Comparación PPR vs CEPLAN</h5>
+          </div>
+          <div class="card-body">
+            <div class="row text-center">
+              <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                  <div class="card-body">
+                    <h4 class="text-primary">PPR Cargados</h4>
+                    <h2 class="text-primary" id="pprsCargados">0</h2>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                  <div class="card-body">
+                    <h4 class="text-success">CEPLAN Cargados</h4>
+                    <h2 class="text-success" id="ceplansCargados">0</h2>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                  <div class="card-body">
+                    <h4 class="text-warning">Diferencias Detectadas</h4>
+                    <h2 class="text-warning" id="diferenciasDetectadas">0</h2>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-3 text-center">
+              <a href="/comparison" class="btn btn-primary">Ver Comparación Completa</a>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle with Popper -->
+  <script src="/static/js/bootstrap.bundle.min.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="/static/js/sweetalert2.min.js"></script>
+  <script src="/static/js/main.js"></script>
+  
+  <script>
+    // Inicializar autenticación y cargar datos
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeAuthForDashboard();
+      loadUserData();
+      loadMetrics();
+      loadPPRsDesviacion();
+      loadUsuariosActivos();
+      loadComparisonData();
+    });
+    
+    // Función para inicializar autenticación en el dashboard
+    async function initializeAuthForDashboard() {
+      if (!isAuthenticated()) {
+        window.location.href = '/login';
+        return;
+      }
+      
+      // Actualizar la navegación basada en el estado de autenticación
+      updateNavigation();
+      
+      // Mostrar información del usuario
+      const user = await getCurrentUser();
+      if (user) {
+        document.getElementById('userDisplayName').textContent = user.nombre;
+      }
+      
+      // Configurar eventos de cierre de sesión
+      document.getElementById('logoutButton').addEventListener('click', function(e) {
+        e.preventDefault();
+        logout();
+      });
+      
+      // Configurar enlaces
+      document.getElementById('viewProfileLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = '/users';
+      });
+    }
+    
+    // Función para cargar datos del usuario
+    async function loadUserData() {
+      try {
+        const userData = await getCurrentUser();
+        if (userData) {
+          document.getElementById('userDisplayName').textContent = userData.nombre;
+        }
+      } catch (error) {
+        console.error('Error al cargar datos del usuario:', error);
+      }
+    }
+    
+    // Función para cargar métricas principales
+    async function loadMetrics() {
+      try {
+        // Simulación de carga de métricas - en la implementación real haría una llamada a la API
+        const mockMetrics = {
+          totalPPRs: 24,
+          totalUsuarios: 18,
+          cumplimientoGeneral: 76,
+          pprsConDesviacion: 8
+        };
+        
+        document.getElementById('totalPPRs').textContent = mockMetrics.totalPPRs;
+        document.getElementById('totalUsuarios').textContent = mockMetrics.totalUsuarios;
+        document.getElementById('cumplimientoGeneral').textContent = mockMetrics.cumplimientoGeneral + '%';
+        document.getElementById('pprsConDesviacion').textContent = mockMetrics.pprsConDesviacion;
+      } catch (error) {
+        console.error('Error al cargar métricas:', error);
+        showError('Error al cargar las métricas del dashboard');
+      }
+    }
+    
+    // Función para cargar PPRs con mayor desviación
+    async function loadPPRsDesviacion() {
+      try {
+        // Simulación de carga de PPRs con desviación - en la implementación real haría una llamada a la API
+        const mockPPRs = [
+          {
+            id: 1,
+            nombre_ppr: "Prevención de Enfermedades",
+            unidad: "Hospital Central",
+            cumplimiento: 45,
+            desviacion: 55
+          },
+          {
+            id: 2,
+            nombre_ppr: "Atención Primaria",
+            unidad: "Centro Salud Este",
+            cumplimiento: 52,
+            desviacion: 48
+          },
+          {
+            id: 3,
+            nombre_ppr: "Vacunación Infantil",
+            unidad: "Clínica Norte",
+            cumplimiento: 58,
+            desviacion: 42
+          }
+        ];
+        
+        const tbody = document.getElementById('pprsDesviacionBody');
+        tbody.innerHTML = '';
+        
+        mockPPRs.forEach(ppr => {
+          const row = document.createElement('tr');
+          
+          // Determinar clase de barra de progreso
+          let progressBarClass = '';
+          if (ppr.cumplimiento < 60) {
+            progressBarClass = 'bg-danger';
+          } else if (ppr.cumplimiento < 80) {
+            progressBarClass = 'bg-warning';
+          } else {
+            progressBarClass = 'bg-success';
+          }
+          
+          row.innerHTML = `
+            <td>${ppr.nombre_ppr}</td>
+            <td>${ppr.unidad}</td>
+            <td>
+              <div class="progress" title="${ppr.cumplimiento}%">
+                <div class="progress-bar ${progressBarClass}" 
+                     role="progressbar" 
+                     style="width: ${ppr.cumplimiento}%" 
+                     aria-valuenow="${ppr.cumplimiento}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100"></div>
+              </div>
+              <small>${ppr.cumplimiento}%</small>
+            </td>
+            <td>${ppr.desviacion}%</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary" onclick="viewPPR(${ppr.id})">Ver</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Error al cargar PPRs con desviación:', error);
+        showError('Error al cargar los PPRs con mayor desviación');
+      }
+    }
+    
+    // Función para cargar usuarios con actividad reciente
+    async function loadUsuariosActivos() {
+      try {
+        // Simulación de carga de usuarios activos - en la implementación real haría una llamada a la API
+        const mockUsuarios = [
+          {
+            id: 1,
+            nombre: "Ana Pérez",
+            rol: "Responsable PPR",
+            ultima_actividad: "Hoy 10:30",
+            pprs_asignados: 3,
+            estado: "Activo"
+          },
+          {
+            id: 2,
+            nombre: "Juan López",
+            rol: "Responsable Planificación",
+            ultima_actividad: "Ayer 16:45",
+            pprs_asignados: 5,
+            estado: "Activo"
+          },
+          {
+            id: 3,
+            nombre: "María González",
+            rol: "Responsable PPR",
+            ultima_actividad: "Ayer 09:15",
+            pprs_asignados: 2,
+            estado: "Activo"
+          }
+        ];
+        
+        const tbody = document.getElementById('usuariosActivosBody');
+        tbody.innerHTML = '';
+        
+        mockUsuarios.forEach(usuario => {
+          const row = document.createElement('tr');
+          
+          // Determinar clase de estado
+          let estadoClass = '';
+          if (usuario.estado === 'Activo') {
+            estadoClass = 'status-green';
+          } else {
+            estadoClass = 'status-red';
+          }
+          
+          row.innerHTML = `
+            <td>
+              <i class="fas fa-user me-1"></i> ${usuario.nombre}
+            </td>
+            <td>${usuario.rol}</td>
+            <td>${usuario.ultima_actividad}</td>
+            <td>${usuario.pprs_asignados}</td>
+            <td><span class="${estadoClass}">${usuario.estado}</span></td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Error al cargar usuarios activos:', error);
+        showError('Error al cargar los usuarios con actividad reciente');
+      }
+    }
+    
+    // Función para cargar datos de comparación PPR vs CEPLAN
+    async function loadComparisonData() {
+      try {
+        // Simulación de carga de datos de comparación - en la implementación real haría una llamada a la API
+        const mockComparison = {
+          pprsCargados: 15,
+          ceplansCargados: 12,
+          diferenciasDetectadas: 8
+        };
+        
+        document.getElementById('pprsCargados').textContent = mockComparison.pprsCargados;
+        document.getElementById('ceplansCargados').textContent = mockComparison.ceplansCargados;
+        document.getElementById('diferenciasDetectadas').textContent = mockComparison.diferenciasDetectadas;
+      } catch (error) {
+        console.error('Error al cargar datos de comparación:', error);
+        showError('Error al cargar los datos de comparación');
+      }
+    }
+    
+    // Función para ver detalles de un PPR
+    function viewPPR(pprId) {
+      // Redirigir a la vista detallada del PPR
+      window.location.href = `/ppr_detalle?id=${pprId}`;
+    }
+    
+    // Configurar el evento de cambio del filtro de periodo
+    document.getElementById('periodoSelect').addEventListener('change', function() {
+      // Actualizar datos según periodo seleccionado
+      loadMetrics();
+      loadPPRsDesviacion();
+      loadUsuariosActivos();
+    });
+    
+    // Configurar el evento de cambio del filtro de unidad
+    document.getElementById('unidadSelect').addEventListener('change', function() {
+      // Filtrar datos por unidad seleccionada
+      filterByUnidad(this.value);
+    });
+    
+    // Configurar el botón de reset de filtros
+    document.getElementById('resetFilters').addEventListener('click', function() {
+      document.getElementById('periodoSelect').value = 'Octubre 2025';
+      document.getElementById('unidadSelect').value = 'Todos';
+      loadMetrics();
+      loadPPRsDesviacion();
+      loadUsuariosActivos();
+    });
+    
+    // Función para filtrar por unidad funcional
+    function filterByUnidad(unidad) {
+      // En una implementación real, aplicaríamos el filtro y recargaríamos los datos
+      console.log(`Filtrando por unidad: ${unidad}`);
+      loadMetrics();
+      loadPPRsDesviacion();
+      loadUsuariosActivos();
+    }
+  </script>
+</body>
+</html>

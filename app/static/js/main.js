@@ -21,7 +21,61 @@ function getAuthHeaders() {
 
 // Función para mostrar el dashboard
 function showDashboard() {
-    window.location.href = '/ppr';
+    // Verificar si el usuario está autenticado
+    if (!isAuthenticated()) {
+        window.location.href = '/login';
+        return;
+    }
+    
+    // Obtener información del usuario para redirigir según rol
+    getCurrentUser().then(user => {
+        if (user) {
+            redirectToDashboardByRole(user.rol);
+        } else {
+            window.location.href = '/login';
+        }
+    }).catch(error => {
+        console.error('Error getting current user:', error);
+        window.location.href = '/login';
+    });
+}
+
+// Función para redirigir al dashboard según el rol del usuario
+function redirectToDashboardByRole(rol) {
+    switch(rol) {
+        case 'admin':
+        case 'Administrador':
+            window.location.href = '/dashboard_admin';
+            break;
+        case 'responsable_ppr':
+        case 'Responsable PPR':
+            window.location.href = '/dashboard_responsable_ppr';
+            break;
+        case 'responsable_planificacion':
+        case 'Responsable Planificación':
+            window.location.href = '/dashboard_responsable_planificacion';
+            break;
+        default:
+            // Si no coincide con ningún rol específico, ir a la página principal
+            window.location.href = '/';
+    }
+}
+
+// Función para obtener la ruta del dashboard según el rol del usuario
+function getDashboardRouteByRole(rol) {
+    switch(rol) {
+        case 'admin':
+        case 'Administrador':
+            return '/dashboard_admin';
+        case 'responsable_ppr':
+        case 'Responsable PPR':
+            return '/dashboard_responsable_ppr';
+        case 'responsable_planificacion':
+        case 'Responsable Planificación':
+            return '/dashboard_responsable_planificacion';
+        default:
+            return '/';
+    }
 }
 
 // Función para mostrar mensaje de error
@@ -63,8 +117,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeComponents();
 });
 
-// Función para actualizar la navegación según el estado de autenticación
-function updateNavigation() {
+// Función para actualizar la navegación según el estado de autenticación y rol
+async function updateNavigation() {
     const loginLink = document.querySelector('a[href="/login"]');
     if (!loginLink) return;
     
@@ -76,11 +130,89 @@ function updateNavigation() {
             e.preventDefault();
             logout();
         };
+        
+        // Actualizar el menú según el rol del usuario
+        try {
+            const user = await getCurrentUser();
+            if (user) {
+                updateMenuByRole(user.rol);
+            }
+        } catch (error) {
+            console.error('Error obteniendo rol del usuario para actualizar menú:', error);
+        }
     } else {
         loginLink.innerHTML = '<i class="fas fa-user-circle me-1"></i> Iniciar Sesión';
         loginLink.href = '/login';
         loginLink.onclick = null;
+        
+        // Si no está autenticado, restaurar menú público
+        resetPublicMenu();
     }
+}
+
+// Función para actualizar el menú según el rol del usuario
+function updateMenuByRole(rol) {
+    // Obtener elementos del menú
+    const navItems = document.querySelectorAll('.navbar-nav .nav-item');
+    
+    // Mostrar/ocultar elementos según el rol
+    navItems.forEach(item => {
+        const link = item.querySelector('a');
+        if (link) {
+            const href = link.getAttribute('href');
+            
+            switch(rol) {
+                case 'admin':
+                case 'Administrador':
+                    // Mostrar todos los elementos para admin
+                    item.style.display = 'block';
+                    break;
+                case 'responsable_ppr':
+                case 'Responsable PPR':
+                    // Mostrar solo elementos relevantes para responsable PPR
+                    if (href === '/ppr' || href === '/reports' || href === '/transversal_data') {
+                        item.style.display = 'block';
+                    } else if (href === '/') {
+                        // Mantener el inicio
+                        item.style.display = 'block';
+                    } else if (href === '/users') {
+                        // Ocultar gestión de usuarios para responsable PPR
+                        item.style.display = 'none';
+                    } else {
+                        item.style.display = 'block';
+                    }
+                    break;
+                case 'responsable_planificacion':
+                case 'Responsable Planificación':
+                    // Mostrar solo elementos relevantes para responsable de planificación
+                    if (href === '/ppr' || href === '/reports' || href === '/transversal_data' || href === '/comparison') {
+                        item.style.display = 'block';
+                    } else if (href === '/') {
+                        // Mantener el inicio
+                        item.style.display = 'block';
+                    } else if (href === '/users') {
+                        // Ocultar gestión de usuarios para responsable de planificación
+                        item.style.display = 'none';
+                    } else {
+                        item.style.display = 'block';
+                    }
+                    break;
+                default:
+                    // Para otros roles o si no se reconoce, mostrar menú completo
+                    item.style.display = 'block';
+            }
+        }
+    });
+}
+
+// Función para restaurar el menú público (cuando no está autenticado)
+function resetPublicMenu() {
+    const navItems = document.querySelectorAll('.navbar-nav .nav-item');
+    
+    navItems.forEach(item => {
+        // Mostrar todos los elementos del menú público
+        item.style.display = 'block';
+    });
 }
 
 // Función para cerrar sesión
@@ -334,11 +466,21 @@ function initializeAuth() {
         // Si no está autenticado, redirigir al login
         window.location.href = '/login';
     } else {
-        // Cargar información del usuario si es necesario
+        // Cargar información del usuario y redirigir según rol
         getCurrentUser().then(user => {
             if (user) {
                 console.log('Usuario autenticado:', user.nombre);
+                
+                // Si estamos en la página de inicio y el usuario está autenticado,
+                // redirigir al dashboard correspondiente según su rol
+                if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+                    redirectToDashboardByRole(user.rol);
+                }
             }
+        }).catch(error => {
+            console.error('Error obteniendo información del usuario:', error);
+            // Si hay error, redirigir al login
+            window.location.href = '/login';
         });
     }
 }

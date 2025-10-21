@@ -66,6 +66,9 @@
                     <button class="btn btn-primary btn-lg" type="button" onclick="showDashboard()">
                         <i class="fas fa-tachometer-alt me-1"></i> Ir al Dashboard
                     </button>
+                    <button class="btn btn-outline-primary btn-lg ms-2" type="button" onclick="window.location.href='/login'">
+                        <i class="fas fa-sign-in-alt me-1"></i> Iniciar Sesión
+                    </button>
                 </div>
             </div>
         </div>
@@ -167,10 +170,26 @@
     <script>
         // Initialize auth on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Update navigation based on auth status
-            updateNavigation();
-            
-            loadRecentActivities();
+            // Check if user is authenticated and redirect to appropriate dashboard
+            if (isAuthenticated()) {
+                getCurrentUser().then(user => {
+                    if (user) {
+                        redirectToDashboardByRole(user.rol);
+                    } else {
+                        updateNavigation();
+                        loadRecentActivities();
+                    }
+                }).catch(error => {
+                    console.error('Error getting current user:', error);
+                    updateNavigation();
+                    loadRecentActivities();
+                });
+            } else {
+                // Update navigation based on auth status
+                updateNavigation();
+                
+                loadRecentActivities();
+            }
         });
 
         async function loadRecentActivities() {
@@ -206,7 +225,7 @@
                     row.innerHTML = `
                         <td>${activity.fecha}</td>
                         <td>${activity.usuario}</td>
-                        <td><span class="badge bg-info">${activity.accion}</span></td>
+                        <td><span class=\"badge bg-info\">${activity.accion}</span></td>
                         <td>${activity.detalle}</td>
                     `;
                     tbody.appendChild(row);

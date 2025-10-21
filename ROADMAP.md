@@ -68,8 +68,8 @@ Funcionalidades completadas y en producción:
 
 #### 3. Dashboards y Reportes Básicos
 - **ID**: FEAT-002
-- **Prioridad**: Alta
-- **Descripción**: Desarrollar interfaces gráficas para métricas y comparaciones visuales
+- **Prioridad**: ✅ Completado
+- **Descripción**: Desarrollar interfaces gráficas para métricas y comparaciones visuales. **Implementado filtrado por periodo y ajustes UI (eliminación columna PPR).**
 - **Tareas**:
   - Crear dashboard por PPR (KPIs, % de cumplimiento)
   - Implementar visualizaciones comparativas PPR vs CEPLAN
@@ -83,8 +83,8 @@ Funcionalidades completadas y en producción:
 
 #### 4. Actualizaciones Mensuales
 - **ID**: FEAT-003
-- **Prioridad**: Alta
-- **Descripción**: Funcionalidad para que responsables actualicen ejecuciones mensuales
+- **Prioridad**: ✅ Completado
+- **Descripción**: Funcionalidad para que responsables actualicen ejecuciones mensuales. **Implementado soporte backend para filtrado por periodo.**
 - **Tareas**:
   - Endpoint PUT `/ppr/{id}/monthly-update` para responsable
   - Validaciones para evitar sobrescritura no autorizada
