@@ -84,7 +84,7 @@ Funcionalidades completadas y en producción:
 #### 4. Actualizaciones Mensuales
 - **ID**: FEAT-003
 - **Prioridad**: ✅ Completado
-- **Descripción**: Funcionalidad para que responsables actualicen ejecuciones mensuales. **Implementado soporte backend para filtrado por periodo.**
+- **Descripción**: Funcionalidad completa para que responsables actualicen valores programados y ejecutados mensualmente.
 - **Tareas**:
   - Endpoint PUT `/ppr/{id}/monthly-update` para responsable
   - Validaciones para evitar sobrescritura no autorizada

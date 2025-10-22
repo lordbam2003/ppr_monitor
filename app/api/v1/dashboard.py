@@ -513,9 +513,10 @@ async def get_ppr_subproductos(
         
         programacion = session.exec(programacion_query.order_by(ProgramacionPPR.fecha_actualizacion.desc())).first()
 
-        # Only include subproducts in the result if they have a programacion with prog_ value > 0 for the selected month
-        if not (programacion and getattr(programacion, f"prog_{month_name_map.get(month)}", 0) > 0):
-            continue # Skip this subproduct if no valid programacion with prog_ > 0 for the month
+        # The following condition was too strict and hid subproducts with no programmed value for the month.
+        # It has been removed to ensure all subproducts for the selected PPR are always displayed.
+        # if not (programacion and getattr(programacion, f"prog_{month_name_map.get(month)}", 0) > 0):
+        #     continue # Skip this subproduct if no valid programacion with prog_ > 0 for the month
         
         # Calcular valores basados en la programación o en el subproducto
         meta_anual = 0
