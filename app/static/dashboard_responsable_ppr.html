@@ -138,6 +138,36 @@
 
       <!-- Contenido Principal -->
       <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+
+        <!-- Tabla Resumen de PPRs Asignados -->
+        <div class="card card-dashboard mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Resumen de Mis Programas Presupuestales</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Programa Presupuestal</th>
+                    <th>Avance General</th>
+                    <th>Subproductos Críticos</th>
+                    <th>Subproductos en Atención</th>
+                    <th>Subproductos OK</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="pprsSummaryTableBody">
+                  <!-- Las filas del resumen se llenarán dinámicamente -->
+                  <tr>
+                    <td colspan="6" class="text-center">Cargando resumen...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- Filtros -->
         <div class="mb-4 d-flex flex-wrap gap-2 align-items-end">
           <div>
@@ -200,8 +230,9 @@
 
         <!-- Tabla de Subproductos Asignados -->
         <div class="card card-dashboard">
-          <div class="card-header bg-white">
+          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Mis Subproductos Asignados</h5>
+            <input type="text" id="subproductFilter" class="form-control form-control-sm w-auto" placeholder="Filtrar subproductos...">
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
@@ -238,12 +269,36 @@
   <script src="/static/js/main.js"></script>
   
   <script>
+    let currentSubproductsData = []; // Global variable to store subproducts data
     // Inicializar autenticación y cargar datos
     document.addEventListener('DOMContentLoaded', function() {
       initializeAuthForDashboard();
       loadUserData();
       loadAssignedPPRs();
-      const initialPeriod = document.getElementById('periodoSelect').value; // Get initial period from dropdown
+      loadPPRsSummary(); // Cargar la nueva tabla de resumen
+
+      // Dynamically populate the periodoSelect dropdown
+      const periodoSelect = document.getElementById('periodoSelect');
+      periodoSelect.innerHTML = ''; // Clear existing options
+      const monthNamesFull = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      const today = new Date();
+      const currentMonth = today.getMonth() + 1;
+      const currentYear = today.getFullYear();
+
+      for (let i = 0; i < 3; i++) {
+          let monthNum = currentMonth - i;
+          let yearNum = currentYear;
+          if (monthNum <= 0) {
+              monthNum += 12;
+              yearNum -= 1;
+          }
+          const option = document.createElement('option');
+          option.value = `${monthNamesFull[monthNum - 1]} ${yearNum}`;
+          option.textContent = `${monthNamesFull[monthNum - 1]} ${yearNum}`;
+          periodoSelect.appendChild(option);
+      }
+
+      const initialPeriod = periodoSelect.value; // Get initial period from dropdown
       loadSubproducts(null, initialPeriod);
       loadMetrics(null, initialPeriod);
     });
@@ -281,7 +336,120 @@
         window.location.href = '/ppr_detalle';
       });
     }
+
+    // Función para cargar el resumen de PPRs asignados
+    async function loadPPRsSummary() {
+      try {
+        const summaryData = await callAPI('/dashboard/assigned-pprs-summary', 'GET');
+        const summaryBody = document.getElementById('pprsSummaryTableBody');
+        summaryBody.innerHTML = '';
+
+        if (summaryData.length === 0) {
+          summaryBody.innerHTML = '<tr><td colspan="6" class="text-center">No tiene PPRs asignados.</td></tr>';
+          return;
+        }
+
+        summaryData.forEach(ppr => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${ppr.nombre_ppr}</td>
+            <td>
+              <div class="progress" title="${ppr.avance_general}%">
+                <div class="progress-bar" role="progressbar" style="width: ${ppr.avance_general}%" aria-valuenow="${ppr.avance_general}" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+              <small class="text-muted">${ppr.avance_general}%</small>
+            </td>
+            <td class="text-center"><span class="badge bg-danger">${ppr.subproductos_criticos}</span></td>
+            <td class="text-center"><span class="badge bg-warning text-dark">${ppr.subproductos_atencion}</span></td>
+            <td class="text-center"><span class="badge bg-success">${ppr.subproductos_ok}</span></td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary view-details-btn" data-ppr-id="${ppr.id_ppr}">Ver Detalles</button>
+            </td>
+          `;
+          summaryBody.appendChild(row);
+        });
+
+        // Añadir event listeners a los botones de "Ver Detalles"
+        document.querySelectorAll('.view-details-btn').forEach(button => {
+          button.addEventListener('click', function() {
+            const pprId = this.getAttribute('data-ppr-id');
+            const pprSelect = document.getElementById('pprSelect');
+            pprSelect.value = pprId;
+            // Disparar el evento change para que el resto del dashboard se actualice
+            pprSelect.dispatchEvent(new Event('change'));
+          });
+        });
+
+      } catch (error) {
+        console.error('Error al cargar el resumen de PPRs:', error);
+        const summaryBody = document.getElementById('pprsSummaryTableBody');
+        summaryBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error al cargar el resumen.</td></tr>';
+      }
+    }
     
+    // Función para actualizar el progreso mensual en vivo
+    function updateMonthlyProgress(inputElement) {
+        console.log('updateMonthlyProgress function started');
+        console.log('updateMonthlyProgress called with inputElement:', inputElement);
+
+        console.log("VALOR 1:");
+        console.log(inputElement.value);
+
+        const monthRow = inputElement.closest('.month-row');
+        console.log("VALOR 2:");
+        console.log(monthRow.value);
+
+        console.log('inputElement.parentElement:', inputElement.parentElement);
+        console.log("inputElement.closest('.month-row')', inputElement.closest('.month-row')");
+        console.log('monthRow:', monthRow);
+        
+        if (!monthRow) {
+            console.error('Error: monthRow is null. Could not find ancestor with class .month-row');
+            return; // Exit if monthRow is null to prevent further errors
+        }
+
+        const monthNum = parseInt(monthRow.dataset.month);
+        const yearNum = parseInt(monthRow.dataset.year);
+
+        const progInput = monthRow.querySelector('.monthly-prog-input');
+        const ejecInput = monthRow.querySelector('.monthly-ejec-input');
+        
+        console.log('progInput:', progInput, 'ejecInput:', ejecInput);
+
+        const progValue = parseFloat(progInput.value) || 0;
+        const ejecValue = parseFloat(ejecInput.value) || 0;
+        console.log(`progValue: ${progValue}, ejecValue: ${ejecValue}`);
+
+        const avancePorcentaje = progValue > 0 ? (ejecValue / progValue) * 100 : 0;
+        let estado = "";
+        let progressBarClass = "";
+        if (avancePorcentaje < 70) {
+            estado = "CRÍTICO";
+            progressBarClass = "bg-danger";
+        } else if (avancePorcentaje < 90) {
+            estado = "ATENCIÓN";
+            progressBarClass = "bg-warning";
+        } else {
+            estado = "OK";
+            progressBarClass = "bg-success";
+        }
+        console.log(`avancePorcentaje: ${avancePorcentaje}, estado: ${estado}, progressBarClass: ${progressBarClass}`);
+
+        const progressBar = monthRow.querySelector('.monthly-progress-bar-container .progress-bar');
+        const progressText = monthRow.querySelector('.monthly-progress-text');
+        console.log('progressBar:', progressBar, 'progressText:', progressText);
+
+        if (progressBar) {
+            progressBar.style.width = `${avancePorcentaje}%`;
+            progressBar.className = `progress-bar ${progressBarClass}`;
+            progressBar.setAttribute('aria-valuenow', avancePorcentaje);
+            progressBar.title = `${avancePorcentaje.toFixed(2)}% - ${estado}`;
+        }
+        if (progressText) {
+            progressText.textContent = `${avancePorcentaje.toFixed(2)}%`;
+        }
+    }
+
     // Función para cargar datos del usuario
     async function loadUserData() {
       try {
@@ -357,7 +525,8 @@
         }
         
                 // Llamada real al endpoint de subproductos
-                const response = await callAPI(endpoint, 'GET');        
+                const response = await callAPI(endpoint, 'GET');
+        currentSubproductsData = response; // Store the fetched data globally or in an accessible scope
         const tbody = document.getElementById('subproductosTableBody');
         tbody.innerHTML = '';
         
@@ -458,11 +627,166 @@
     }
     
     // Función para ver detalles de un subproducto
-    function viewSubproduct(subproductoId) {
-      // Redirigir a la vista detallada del subproducto
-      // Aquí se podría abrir un modal o redirigir a una página específica
-      window.location.href = `/ppr_detalle?id=${subproductoId}`;
-    }
+    async function viewSubproduct(subproductoId) {
+      const subproducto = currentSubproductsData.find(s => s.id_subproducto === subproductoId);
+      if (!subproducto) {
+        showError('Subproducto no encontrado.');
+        return;
+      }
+
+      showLoading('Cargando datos del subproducto...');
+      try {
+        const multiMonthData = await callAPI(`/dashboard/ppr/${subproductoId}/programacion-multi-month`, 'GET');
+        hideLoading();
+
+        // Populate modal fields
+        document.getElementById('modalSubproductName').textContent = subproducto.nombre_subproducto;
+        document.getElementById('modalPPRName').textContent = subproducto.nombre_actividad;
+        
+        // Populate annual summary
+        document.getElementById('modalMetaAnual').textContent = subproducto.meta_anual || 0;
+        document.getElementById('modalAvanceAnual').textContent = subproducto.avance_actual || 0;
+        document.getElementById('modalBrechaAnual').textContent = subproducto.brecha || 0;
+
+        const annualProgressBar = document.querySelector('#modalProgressAnualContainer .progress-bar');
+        const annualProgressText = document.getElementById('modalProgressAnualText');
+
+        let annualProgressBarClass = '';
+        if (subproducto.porcentaje_avance < 50) {
+            annualProgressBarClass = 'bg-danger';
+        } else if (subproducto.porcentaje_avance < 90) {
+            annualProgressBarClass = 'bg-warning';
+        } else {
+            annualProgressBarClass = 'bg-success';
+        }
+
+        annualProgressBar.style.width = `${subproducto.porcentaje_avance}%`;
+        annualProgressBar.className = `progress-bar ${annualProgressBarClass}`;
+        annualProgressBar.setAttribute('aria-valuenow', subproducto.porcentaje_avance);
+        annualProgressText.textContent = `${subproducto.porcentaje_avance.toFixed(2)}% - ${subproducto.estado}`;
+
+        // Clear previous content
+        const multiMonthAvanceContainer = document.getElementById('multiMonthAvanceContainer');
+        multiMonthAvanceContainer.innerHTML = '';
+
+        if (multiMonthData.length === 0) {
+          multiMonthAvanceContainer.innerHTML = '<p class="text-center">No hay datos de programación para este subproducto en los últimos 3 meses.</p>';
+        }
+
+        // 🔹 Construcción dinámica de filas
+        multiMonthData.forEach(monthData => {
+            const progValue = monthData.prog_mensual || 0;
+            const ejecValue = monthData.ejec_mensual || 0;
+            const monthNameFull = monthData.month_name;
+            const monthNum = monthData.month;
+            const yearNum = monthData.year;
+
+            // Cálculo inicial del porcentaje
+            const avancePorcentaje = progValue > 0 ? (ejecValue / progValue) * 100 : 0;
+            let estado = "";
+            let progressBarClass = "";
+            if (avancePorcentaje < 50) {
+              estado = "CRÍTICO";
+              progressBarClass = "bg-danger";
+            } else if (avancePorcentaje < 90) {
+              estado = "ATENCIÓN";
+              progressBarClass = "bg-warning";
+            } else {
+              estado = "OK";
+              progressBarClass = "bg-success";
+            }
+
+            const monthHtml = `
+              <tr>
+                <td>
+                  ${monthNameFull} 
+                  ${((monthNum === new Date().getMonth() + 1 && yearNum === new Date().getFullYear()) ? '<span class="badge bg-info text-dark">Actual</span>' : '')}
+                </td>
+                <td>
+                  <input type="number" class="form-control form-control-sm monthly-prog-input" 
+                        id="prog_${monthNum}_${yearNum}" 
+                        data-month="${monthNum}" data-year="${yearNum}" 
+                        value="${progValue}" min="0" 
+                        data-original-prog="${progValue}">
+                </td>
+                <td>
+                  <input type="number" class="form-control form-control-sm monthly-ejec-input" 
+                        id="ejec_${monthNum}_${yearNum}" 
+                        data-month="${monthNum}" data-year="${yearNum}" 
+                        value="${ejecValue}" min="0" 
+                        data-original-ejec="${ejecValue}">
+                </td>
+                <td>
+                  <div class="progress" title="${avancePorcentaje.toFixed(2)}% - ${estado}">
+                    <div class="progress-bar ${progressBarClass}" 
+                          role="progressbar" 
+                          style="width: ${avancePorcentaje}%" 
+                          aria-valuenow="${avancePorcentaje}" 
+                          aria-valuemin="0" 
+                          aria-valuemax="100"></div>
+                  </div>
+                  <small class="text-muted">${avancePorcentaje.toFixed(2)}%</small>
+                </td>
+              </tr>
+            `;
+            multiMonthAvanceContainer.innerHTML += monthHtml;
+          });
+
+          // Guardar datos del subproducto
+          document.getElementById('saveAvanceButton').dataset.subproductoId = subproductoId;
+          document.getElementById('saveAvanceButton').dataset.subproductoAnio = 
+            multiMonthData.length > 0 ? multiMonthData[0].year : new Date().getFullYear();
+
+          // 🔹 Agregar listeners para recalcular en tiempo real
+          const rows = document.querySelectorAll('#multiMonthAvanceContainer tr');
+          rows.forEach(row => {
+            const progInput = row.querySelector('.monthly-prog-input');
+            const ejecInput = row.querySelector('.monthly-ejec-input');
+            const progressBar = row.querySelector('.progress-bar');
+            const progressText = row.querySelector('small');
+
+            if (!progInput || !ejecInput || !progressBar) return;
+
+            const updateProgress = () => {
+              const progValue = parseFloat(progInput.value) || 0;
+              const ejecValue = parseFloat(ejecInput.value) || 0;
+              const avancePorcentaje = progValue > 0 ? (ejecValue / progValue) * 100 : 0;
+
+              let estado = '';
+              let progressBarClass = '';
+              if (avancePorcentaje < 70) {
+                estado = 'CRÍTICO';
+                progressBarClass = 'bg-danger';
+              } else if (avancePorcentaje < 90) {
+                estado = 'ATENCIÓN';
+                progressBarClass = 'bg-warning';
+              } else {
+                estado = 'OK';
+                progressBarClass = 'bg-success';
+              }
+
+              progressBar.style.width = `${avancePorcentaje}%`;
+              progressBar.className = `progress-bar ${progressBarClass}`;
+              progressBar.setAttribute('aria-valuenow', avancePorcentaje);
+              progressBar.parentElement.setAttribute('title', `${avancePorcentaje.toFixed(2)}% - ${estado}`);
+              progressText.textContent = `${avancePorcentaje.toFixed(2)}%`;
+            };
+
+            progInput.addEventListener('input', updateProgress);
+            ejecInput.addEventListener('input', updateProgress);
+          });
+
+          // Mostrar modal
+          const updateValuesModal = new bootstrap.Modal(document.getElementById('updateValuesModal'));
+          updateValuesModal.show();
+
+        } catch (error) {
+          hideLoading();
+          console.error('Error al cargar datos multi-mes del subproducto:', error);
+          showError('Error al cargar los datos del subproducto para actualización.');
+        }
+      }    
+    
     
     // Configurar el evento de cambio del filtro de PPR
     document.getElementById('pprSelect').addEventListener('change', function() {
@@ -515,6 +839,212 @@
         showError('Error al filtrar los subproductos');
       }
     }
+
+    // Función para filtrar la tabla de subproductos
+    function filterSubproductsTable() {
+        const filterValue = document.getElementById('subproductFilter').value.toLowerCase();
+        const tableBody = document.getElementById('subproductosTableBody');
+        const rows = tableBody.getElementsByTagName('tr');
+
+        for (let i = 0; i < rows.length; i++) {
+            const subproductoCell = rows[i].getElementsByTagName('td')[0]; // Assuming subproducto is the first column now
+            if (subproductoCell) {
+                const textValue = subproductoCell.textContent || subproductoCell.innerText;
+                if (textValue.toLowerCase().indexOf(filterValue) > -1) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        }
+    }
+
+    // Configurar el evento de input para el filtro de subproductos
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('subproductFilter').addEventListener('input', filterSubproductsTable);
+
+        // Configurar el evento de clic para el botón Guardar Avance del modal
+        document.getElementById('saveAvanceButton').addEventListener('click', saveAvance);
+    });
+
+    // Función para guardar el avance del subproducto
+    async function saveAvance() {
+        const subproductoId = document.getElementById('saveAvanceButton').dataset.subproductoId;
+        const subproductoAnio = document.getElementById('saveAvanceButton').dataset.subproductoAnio;
+        
+        let changesMade = false;
+        let successMessages = [];
+        let errorMessages = [];
+
+        showLoading('Guardando cambios...');
+
+        const monthNamesShort = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        const today = new Date();
+        const currentMonth = today.getMonth() + 1;
+        const currentYear = today.getFullYear();
+
+        const monthsToProcess = [];
+        for (let i = 0; i < 3; i++) {
+            let monthNum = currentMonth - i;
+            let yearNum = currentYear;
+            if (monthNum <= 0) {
+                monthNum += 12;
+                yearNum -= 1;
+            }
+            monthsToProcess.push({ monthNum, yearNum, monthNameShort: monthNamesShort[monthNum - 1] });
+        }
+
+        for (const { monthNum, yearNum, monthNameShort } of monthsToProcess) {
+            const progInput = document.getElementById(`prog_${monthNum}_${yearNum}`);
+            const ejecInput = document.getElementById(`ejec_${monthNum}_${yearNum}`);
+
+            if (!progInput || !ejecInput) { // Check if elements exist (e.g., if modal not fully loaded)
+                console.warn(`Input fields for ${monthNameShort} (${yearNum}) not found. Skipping.`);
+                continue;
+            }
+
+            const currentProg = parseFloat(progInput.value);
+            const currentEjec = parseFloat(ejecInput.value);
+            const originalProg = parseFloat(progInput.dataset.originalProg);
+            const originalEjec = parseFloat(ejecInput.dataset.originalEjec);
+
+            if (isNaN(currentProg) || currentProg < 0 || isNaN(currentEjec) || currentEjec < 0) {
+                errorMessages.push(`Valores inválidos para ${monthNameShort} (${yearNum}).`);
+                continue;
+            }
+
+            // Check if values have actually changed
+            if (currentProg !== originalProg || currentEjec !== originalEjec) {
+                changesMade = true;
+                try {
+                    await callAPI(
+                        `/ppr/${subproductoId}/update-avance`,
+                        'PUT',
+                        {
+                            month: monthNum,
+                            year: yearNum,
+                            prog_mensual: currentProg,
+                            ejec_mensual: currentEjec,
+                            observaciones: ''
+                        }
+                    );
+                    successMessages.push(`Programación/Ejecución de ${monthNameShort} (${yearNum}) guardada.`);
+                } catch (error) {
+                    console.error(`Error al guardar programación/ejecución para ${monthNameShort} (${yearNum}):`, error);
+                    errorMessages.push(`Error al guardar programación/ejecución para ${monthNameShort} (${yearNum}).`);
+                }
+            }
+        }
+
+        hideLoading();
+
+        if (errorMessages.length > 0) {
+            showError('Se encontraron errores al guardar algunos avances:\n' + errorMessages.join('\n'));
+        } else if (changesMade) {
+            showSuccess('Cambios guardados exitosamente:\n' + successMessages.join('\n'));
+        } else {
+            showSuccess('No se detectaron cambios para guardar.');
+        }
+        
+        // Close modal
+        const updateValuesModal = bootstrap.Modal.getInstance(document.getElementById('updateValuesModal'));
+        updateValuesModal.hide();
+
+        // Reload data to reflect changes
+        const pprId = document.getElementById('pprSelect').value;
+        const selectedPeriod = document.getElementById('periodoSelect').value;
+        loadSubproducts(pprId, selectedPeriod);
+        loadMetrics(pprId, selectedPeriod);
+    }
   </script>
+
+  <!-- Modal para Actualizar Valores -->
+  <div class="modal fade" id="updateValuesModal" tabindex="-1" aria-labelledby="updateValuesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content shadow-lg rounded-3">
+        <div class="modal-header bg-primary text-white p-3">
+          <h5 class="modal-title" id="updateValuesModalLabel">📝 Actualizar Avance de Subproducto</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- Información del subproducto -->
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <span class="info-label fw-bold text-muted">Subproducto:</span>
+            </div>
+            <div class="col-md-8">
+              <span class="info-value fw-semibold text-dark" id="modalSubproductName"></span>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <span class="info-label fw-bold text-muted">ACTIVIDAD:</span>
+            </div>
+            <div class="col-md-8">
+              <span class="info-value fw-semibold text-dark" id="modalPPRName"></span>
+            </div>
+          </div>
+
+          <hr class="my-4 border-secondary">
+
+          <!-- Resumen Anual del Subproducto -->
+          <h5 class="mb-3 text-primary">RESUMEN ANUAL</h5>
+          <div class="row mb-2">
+            <div class="col-md-4 fw-bold text-muted">Meta Anual:</div>
+            <div class="col-md-8 fw-semibold text-dark" id="modalMetaAnual"></div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-md-4 fw-bold text-muted">Avance Anual:</div>
+            <div class="col-md-8 fw-semibold text-dark" id="modalAvanceAnual"></div>
+          </div>
+          <div class="row mb-2">
+            <div class="col-md-4 fw-bold text-muted">Brecha Anual:</div>
+            <div class="col-md-8 fw-semibold text-danger" id="modalBrechaAnual"></div>
+          </div>
+          <div class="row mb-4">
+            <div class="col-md-4 fw-bold text-muted">Progreso Anual:</div>
+            <div class="col-md-8">
+              <div class="progress" id="modalProgressAnualContainer">
+                <div class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+              <small class="text-muted" id="modalProgressAnualText"></small>
+            </div>
+          </div>
+
+          <hr class="my-4 border-secondary">
+
+          <!-- Formulario de Avance Mensual -->
+          <h5 class="mb-3 text-primary">ACTUALIZAR METAS Y AVANCES MENSUALES</h5>
+
+          <div class="table-responsive">
+            <table id="tableValuesMont" class="table table-sm table-bordered mb-0">
+              <thead>
+                <tr>
+                  <th class="col-md-3">Mes</th>
+                  <th class="col-md-3">Programado</th>
+                  <th class="col-md-3">Ejecutado</th>
+                  <th class="col-md-3">Progreso</th>
+                </tr>
+              </thead>
+              <tbody id="multiMonthAvanceContainer">
+                <!-- Dynamic month rows will be loaded here -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+        <div class="modal-footer p-3 bg-light">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="saveAvanceButton">Guardar Avance</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+
+
 </body>
 </html>
