@@ -56,13 +56,17 @@ class PPRSubproductosResponse(BaseModel):
     ppr_info: AssignedPPRResponse
     subproductos: List[SubproductoResponse]
 
+from app.services.comparison_service import ComparisonService
+
 class PPRSummaryResponse(BaseModel):
     id_ppr: int
     nombre_ppr: str
+    anio: int
     avance_general: float
     subproductos_criticos: int
     subproductos_ok: int
     subproductos_atencion: int
+    total_diferencias: int # Nuevo campo para el conteo de discrepancias
 
 class MonthlyAvanceData(BaseModel):
     month: int
@@ -89,8 +93,8 @@ async def get_assigned_pprs(
             detail="No tiene permisos para acceder a esta funcionalidad"
         )
     
-    # Si es admin, devolver todos los PPRs
-    if current_user.rol == InternalRoleEnum.admin:
+    # Si es admin o responsable de planificación, devolver todos los PPRs
+    if current_user.rol in [InternalRoleEnum.admin, InternalRoleEnum.responsable_planificacion]:
         pprs = session.exec(select(PPR)).all()
     else:
         # Para otros roles, devolver solo los PPRs asignados
@@ -122,35 +126,50 @@ async def get_assigned_pprs(
 
 @router.get("/assigned-pprs-summary", response_model=List[PPRSummaryResponse])
 async def get_assigned_pprs_summary(
+    year: Optional[int] = None,
     current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session)
 ):
     """
     Obtiene un resumen de métricas para cada PPR asignado al usuario.
-    Esta implementación es eficiente para evitar el problema N+1.
     """
-    logger.info(f"User {current_user.email} requesting assigned PPRs summary")
+    logger.info(f"User {current_user.email} requesting assigned PPRs summary for year {year}")
 
     # 1. Obtener los PPRs asignados
-    assigned_pprs_response = await get_assigned_pprs(current_user, session)
-    if not assigned_pprs_response:
+    if current_user.rol in [InternalRoleEnum.admin, InternalRoleEnum.responsable_planificacion]:
+        statement = select(PPR)
+        if year:
+            statement = statement.where(PPR.anio == year)
+        pprs = session.exec(statement).all()
+    else:
+        from app.models.asignacion import UsuarioPPRAsignacion
+        statement = (
+            select(PPR)
+            .join(UsuarioPPRAsignacion)
+            .where(UsuarioPPRAsignacion.id_usuario == current_user.id_usuario)
+        )
+        if year:
+            statement = statement.where(PPR.anio == year)
+        pprs = session.exec(statement).all()
+    
+    if not pprs:
         return []
 
-    ppr_ids = [ppr.id_ppr for ppr in assigned_pprs_response]
+    ppr_ids = [ppr.id_ppr for ppr in pprs]
     
     # Diccionario para almacenar las métricas por PPR
     ppr_metrics = {
         ppr.id_ppr: {
             "id_ppr": ppr.id_ppr,
             "nombre_ppr": ppr.nombre_ppr,
+            "anio": ppr.anio,
             "total_avance": 0,
             "subproductos_con_avance": 0,
             "subproductos_criticos": 0,
             "subproductos_ok": 0,
             "subproductos_atencion": 0
-        } for ppr in assigned_pprs_response
+        } for ppr in pprs
     }
-
     # 2. Obtener todos los subproductos y sus relaciones en menos consultas
     subproductos_query = (
         select(Subproducto, Producto.id_ppr)
@@ -202,14 +221,19 @@ async def get_assigned_pprs_summary(
         if metrics["subproductos_con_avance"] > 0:
             avance_general = metrics["total_avance"] / metrics["subproductos_con_avance"]
         
+        # Obtener el resumen de comparación para este PPR
+        comparison_summary = ComparisonService.get_comparison_summary(session, ppr_id)
+
         summary_list.append(
             PPRSummaryResponse(
                 id_ppr=metrics["id_ppr"],
                 nombre_ppr=metrics["nombre_ppr"],
+                anio=metrics["anio"],
                 avance_general=round(avance_general, 2),
                 subproductos_criticos=metrics["subproductos_criticos"],
                 subproductos_ok=metrics["subproductos_ok"],
-                subproductos_atencion=metrics["subproductos_atencion"]
+                subproductos_atencion=metrics["subproductos_atencion"],
+                total_diferencias=comparison_summary.get("total_differences", 0)
             )
         )
 

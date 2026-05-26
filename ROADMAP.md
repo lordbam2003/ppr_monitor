@@ -49,9 +49,21 @@ Funcionalidades completadas y en producción:
   - Mejora en el rendimiento de la interfaz
 
 ### Versión 1.2 - Comparación y Reportes (Próximos 2-4 semanas)
-**Objetivo**: Implementar funcionalidad de comparación PPR vs CEPLAN y dashboards básicos
+**Objetivo**: Implementar funcionalidad de comparación PPR vs CEPLAN, dashboards básicos y soporte histórico.
 
-#### 2. Motor de Comparación PPR ↔ CEPLAN
+#### 2. Soporte Multianual e Histórico
+- **ID**: FEAT-012
+- **Prioridad**: Alta
+- **Descripción**: Asegurar que el sistema funcione como una base de datos histórica, permitiendo consultas de años anteriores.
+- **Tareas**:
+  - Validar que la estructura jerárquica (PPR -> Subproducto) esté aislada por año.
+  - Asegurar que los valores de avance (PPR y CEPLAN) mantengan su trazabilidad histórica.
+  - Estandarizar filtros de año en todos los dashboards para consultas de datos pasados.
+- **Criterios de Aceptación**:
+  - El usuario puede navegar entre diferentes años fiscales sin mezcla de datos.
+  - Los datos de años anteriores permanecen inalterados y consultables.
+
+#### 3. Motor de Comparación PPR ↔ CEPLAN
 - **ID**: FEAT-001
 - **Prioridad**: Alta
 - **Descripción**: Implementar motor de comparación para cruzar datos entre ambas fuentes
@@ -68,8 +80,12 @@ Funcionalidades completadas y en producción:
 
 #### 3. Dashboards y Reportes Básicos
 - **ID**: FEAT-002
-- **Prioridad**: ✅ Completado
-- **Descripción**: Desarrollar interfaces gráficas para métricas y comparaciones visuales. **Implementado filtrado por periodo y ajustes UI (eliminación columna PPR).**
+- **Prioridad**: 🟡 En Progreso
+- **Descripción**: Desarrollar interfaces gráficas para métricas y comparaciones visuales.
+- **Estado Actual**:
+  - **Dashboard Responsable PPR**: Refactorizado para mejorar la UX y corregir errores de carga de datos.
+  - **Dashboard Responsable Planificación**: Implementada nueva estructura de 3 pestañas (Resumen, Discrepancias, Rendimiento) y layout de ancho completo. Conectado a datos reales del backend.
+  - **⚠️ Pendiente**: Solucionar errores de JavaScript en los filtros en cascada de la pestaña "Análisis de Rendimiento".
 - **Tareas**:
   - Crear dashboard por PPR (KPIs, % de cumplimiento)
   - Implementar visualizaciones comparativas PPR vs CEPLAN

@@ -81,11 +81,43 @@
 
   <!-- Navbar Superior -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary border-bottom px-4 py-2">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
+    <div class="container-fluid">
       <a class="navbar-brand" href="/">
         <i class="fas fa-chart-line me-2"></i>
         Monitor PPR
       </a>
+      
+      <!-- Menú de Navegación Integrado -->
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle text-white" href="#" id="navigationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Navegación
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navigationDropdown">
+            <li>
+              <a class="dropdown-item active" href="/dashboard_responsable_planificacion">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="/ppr">
+                <i class="fas fa-table me-2"></i>Gestión de Datos
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="/reports">
+                <i class="fas fa-chart-bar me-2"></i>Reportes
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="/comparison">
+                <i class="fas fa-exchange-alt me-2"></i>Comparación PPR-CEPLAN
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+
       <div class="d-flex align-items-center">
         <div class="dropdown">
           <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
@@ -101,152 +133,223 @@
     </div>
   </nav>
 
-  <!-- Sidebar de Navegación -->
-  <div class="container-fluid">
-    <div class="row">
-      <nav class="col-md-2 d-md-block bg-light sidebar">
-        <div class="position-sticky pt-3">
-          <ul class="nav flex-column">
-            <li class="nav-item">
-              <a class="nav-link active" href="/dashboard_responsable_planificacion">
-                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/ppr_detalle">
-                <i class="fas fa-table me-2"></i>PPR Asignados
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/reports">
-                <i class="fas fa-chart-bar me-2"></i>Reportes
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/transversal_data">
-                <i class="fas fa-layer-group me-2"></i>Datos Transversales
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/comparison">
-                <i class="fas fa-exchange-alt me-2"></i>Comparación PPR-CEPLAN
-              </a>
-            </li>
-          </ul>
-        </div>
-      </nav>
+  <!-- Contenido Principal Full-Width -->
+  <main class="container-fluid px-md-4 py-4">
+    <!-- Pestañas de Navegación del Dashboard -->
+    <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary-pane" type="button" role="tab">
+          <i class="fas fa-tachometer-alt me-1"></i> Resumen Gerencial
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="discrepancy-tab" data-bs-toggle="tab" data-bs-target="#discrepancy-pane" type="button" role="tab">
+          <i class="fas fa-exchange-alt me-1"></i> Análisis de Discrepancias
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="performance-tab" data-bs-toggle="tab" data-bs-target="#performance-pane" type="button" role="tab">
+          <i class="fas fa-chart-line me-1"></i> Análisis de Rendimiento
+        </button>
+      </li>
+    </ul>
 
-      <!-- Contenido Principal -->
-      <main class="col-md-10 ms-sm-auto px-md-4 py-4">
-        <!-- Filtros -->
-        <div class="mb-4 d-flex flex-wrap gap-2 align-items-end">
-          <div>
-            <label for="periodoSelect" class="form-label fw-bold">Periodo:</label>
-            <select id="periodoSelect" class="form-select filter-select">
-              <option>Octubre 2025</option>
-              <option>Septiembre 2025</option>
-              <option>Agosto 2025</option>
-              <option>Julio 2025</option>
-            </select>
-          </div>
-          <div>
-            <label for="unidadSelect" class="form-label fw-bold">Unidad Funcional:</label>
-            <select id="unidadSelect" class="form-select filter-select">
-              <option>Todos</option>
-              <option>Hospital Central</option>
-              <option>Clínica Norte</option>
-              <option>Centro Salud Este</option>
-            </select>
-          </div>
-          <div class="mt-3 mt-md-0">
-            <button class="btn btn-outline-secondary" id="resetFilters">Ver Todo</button>
-          </div>
+    <!-- Contenido de las Pestañas -->
+    <div class="tab-content" id="dashboardTabContent">
+      <!-- Pestaña 1: Resumen Gerencial -->
+      <div class="tab-pane fade show active" id="summary-pane" role="tabpanel">
+        
+        <!-- Filtro de Año Global para Resumen -->
+        <div class="d-flex align-items-center mb-4">
+          <label for="summaryYearSelect" class="form-label fw-bold me-2 mb-0">Visualizando Datos del Año:</label>
+          <select id="summaryYearSelect" class="form-select filter-select w-auto"></select>
         </div>
 
-        <!-- Métricas Principales -->
+        <!-- Tarjetas de Indicadores Clave (KPIs) -->
         <div class="row mb-4">
-          <!-- PPRs Supervisados -->
-          <div class="col-md-3 mb-3">
-            <div class="card card-dashboard h-100">
+          <div class="col-md-4 mb-3">
+            <div class="card card-dashboard h-100 bg-light border-primary border-start border-4">
               <div class="card-body text-center">
-                <h6 class="card-title text-muted mb-2">PPRs SUPERVISADOS</h6>
-                <h2 class="mb-2" id="pprsSupervisados">0</h2>
-                <div class="progress mb-2">
-                  <div class="progress-bar bg-primary" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
+                <h6 class="card-title text-muted mb-2">PPRs CON DISCREPANCIAS <span class="kpi-year"></span></h6>
+                <h2 class="text-primary mb-2" id="kpiDiscrepancias">-</h2>
+                <p class="mb-0">Programas con diferencias detectadas</p>
               </div>
             </div>
           </div>
 
-          <!-- Cumplimiento General -->
-          <div class="col-md-3 mb-3">
-            <div class="card card-dashboard h-100">
-              <div class="card-body text-center">
-                <h6 class="card-title text-muted mb-2">CUMPLIMIENTO GENERAL</h6>
-                <h2 class="mb-2" id="cumplimientoGeneral">0%</h2>
-                <div class="progress mb-2">
-                  <div class="progress-bar bg-success" id="progressBarGeneral" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- PPRs con Desviación -->
-          <div class="col-md-3 mb-3">
-            <div class="card card-dashboard h-100 bg-light border-warning border-start border-4">
-              <div class="card-body text-center">
-                <h6 class="card-title text-muted mb-2">PPRs CON DESVIACIÓN</h6>
-                <h2 class="text-warning mb-2" id="pprsDesviacion">0</h2>
-                <p class="mb-0">🟡 Requieren atención</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- PPRs Críticos -->
-          <div class="col-md-3 mb-3">
+          <div class="col-md-4 mb-3">
             <div class="card card-dashboard h-100 bg-light border-danger border-start border-4">
               <div class="card-body text-center">
-                <h6 class="card-title text-muted mb-2">PPRs CRÍTICOS</h6>
-                <h2 class="text-danger mb-2" id="pprsCriticos">0</h2>
-                <p class="mb-0">🔴 Altamente críticos</p>
+                <h6 class="card-title text-muted mb-2">PPRs CON BAJO RENDIMIENTO <span class="kpi-year"></span></h6>
+                <h2 class="text-danger mb-2" id="kpiBajoRendimiento">-</h2>
+                <p class="mb-0">Cumplimiento anual &lt; 70%</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <div class="card card-dashboard h-100">
+              <div class="card-body text-center">
+                <h6 class="card-title text-muted mb-2">CUMPLIMIENTO GENERAL <span class="kpi-year"></span></h6>
+                <h2 class="mb-2" id="kpiCumplimientoGeneral">-%</h2>
+                <div class="progress mb-2">
+                  <div class="progress-bar bg-success" id="kpiProgressBarGeneral" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Tabla de PPRs Supervisados -->
+        <!-- Tabla de Resumen de PPRs -->
         <div class="card card-dashboard">
           <div class="card-header bg-white">
-            <h5 class="mb-0">PPRs Supervisados</h5>
+            <h5 class="mb-0">Resumen de Programas Presupuestales</h5>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
               <table class="table table-hover mb-0">
                 <thead>
                   <tr>
-                    <th>PPR</th>
-                    <th>UNIDAD FUNCIONAL</th>
-                    <th>CUMPLIMIENTO</th>
-                    <th>META ANUAL</th>
-                    <th>AVANCE</th>
-                    <th>BRECHA</th>
-                    <th>ESTADO</th>
+                    <th>PROGRAMA PRESUPUESTAL</th>
+                    <th>CUMPLIMIENTO ANUAL</th>
+                    <th>ESTADO DISCREPANCIA (PPR/CEPLAN)</th>
+                    <th>ESTADO RENDIMIENTO</th>
                     <th>ACCIÓN</th>
                   </tr>
                 </thead>
-                <tbody id="pprsTableBody">
-                  <!-- Los datos se llenarán dinámicamente -->
+                <tbody id="summaryTableBody">
                   <tr>
-                    <td colspan="8" class="text-center">Cargando datos...</td>
+                    <td colspan="5" class="text-center p-4">Cargando datos...</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
         </div>
-      </main>
+
+      </div>
+
+      <!-- Pestaña 2: Análisis de Discrepancias -->
+      <div class="tab-pane fade" id="discrepancy-pane" role="tabpanel">
+        <div class="d-flex flex-wrap gap-2 align-items-end mb-3">
+          <div>
+            <label for="discrepancyYearSelect" class="form-label fw-bold">Año:</label>
+            <select id="discrepancyYearSelect" class="form-select filter-select"></select>
+          </div>
+          <div>
+            <label for="discrepancyPprSelect" class="form-label fw-bold">PPR:</label>
+            <select id="discrepancyPprSelect" class="form-select filter-select"></select>
+          </div>
+        </div>
+
+        <div class="card card-dashboard">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Detalle de Discrepancias (PPR vs CEPLAN)</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>SUBPRODUCTO</th>
+                    <th>MES</th>
+                    <th>TIPO DE DIFERENCIA</th>
+                    <th>VALOR PPR</th>
+                    <th>VALOR CEPLAN</th>
+                    <th>DIFERENCIA</th>
+                  </tr>
+                </thead>
+                <tbody id="discrepancyTableBody">
+                  <tr>
+                    <td colspan="6" class="text-center p-4">Seleccione un año y un PPR para ver las discrepancias.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pestaña 3: Análisis de Rendimiento -->
+      <div class="tab-pane fade" id="performance-pane" role="tabpanel">
+        <div class="d-flex flex-wrap gap-2 align-items-end mb-3">
+          <div>
+            <label for="performanceYearSelect" class="form-label fw-bold">Año:</label>
+            <select id="performanceYearSelect" class="form-select filter-select"></select>
+          </div>
+          <div>
+            <label for="performancePprSelect" class="form-label fw-bold">PPR:</label>
+            <select id="performancePprSelect" class="form-select filter-select"></select>
+          </div>
+          <div>
+            <label for="performanceProductSelect" class="form-label fw-bold">Producto:</label>
+            <select id="performanceProductSelect" class="form-select filter-select"></select>
+          </div>
+          <div>
+            <label for="performanceActivitySelect" class="form-label fw-bold">Actividad:</label>
+            <select id="performanceActivitySelect" class="form-select filter-select"></select>
+          </div>
+        </div>
+
+        <!-- Toggle para vista Anual/Mensual -->
+        <ul class="nav nav-pills mb-3">
+          <li class="nav-item">
+            <a class="nav-link active" id="annual-view-tab" data-bs-toggle="pill" href="#annual-view">Vista Anual</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="monthly-view-tab" data-bs-toggle="pill" href="#monthly-view">Vista Mensual</a>
+          </li>
+        </ul>
+
+        <!-- Contenido de las vistas Anual/Mensual -->
+        <div class="tab-content">
+          <!-- Vista Anual -->
+          <div class="tab-pane fade show active" id="annual-view">
+            <div class="card card-dashboard">
+              <div class="card-header bg-light">
+                <h5 class="mb-0">Rendimiento Anual por Subproducto</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th>SUBPRODUCTO</th>
+                        <th>META ANUAL</th>
+                        <th>AVANCE ACUMULADO</th>
+                        <th>BRECHA</th>
+                        <th>% CUMPLIMIENTO</th>
+                      </tr>
+                    </thead>
+                    <tbody id="performanceAnnualTableBody">
+                      <tr><td colspan="5" class="text-center p-4">Seleccione un PPR para ver el rendimiento.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vista Mensual -->
+          <div class="tab-pane fade" id="monthly-view">
+            <div class="card card-dashboard">
+              <div class="card-header bg-light">
+                <h5 class="mb-0">Rendimiento Mensual por Subproducto</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-bordered table-sm mb-0">
+                    <thead id="performanceMonthlyTableHead"></thead>
+                    <tbody id="performanceMonthlyTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </main>
 
   <!-- Bootstrap JS Bundle with Popper -->
   <script src="/static/js/bootstrap.bundle.min.js"></script>
@@ -255,44 +358,34 @@
   <script src="/static/js/main.js"></script>
   
   <script>
-    // Inicializar autenticación y cargar datos
+    // Lógica del dashboard de Planificación
     document.addEventListener('DOMContentLoaded', function() {
       initializeAuthForDashboard();
       loadUserData();
-      loadPPRs();
-      loadMetrics();
+      loadSummaryData();
     });
     
-    // Función para inicializar autenticación en el dashboard
+    // --- 1. Authentication & Setup ---
     async function initializeAuthForDashboard() {
       if (!isAuthenticated()) {
         window.location.href = '/login';
         return;
       }
-      
-      // Actualizar la navegación basada en el estado de autenticación
       updateNavigation();
-      
-      // Mostrar información del usuario
       const user = await getCurrentUser();
       if (user) {
         document.getElementById('userDisplayName').textContent = user.nombre;
       }
-      
-      // Configurar eventos de cierre de sesión
-      document.getElementById('logoutButton').addEventListener('click', function(e) {
+      document.getElementById('logoutButton').addEventListener('click', (e) => {
         e.preventDefault();
         logout();
       });
-      
-      // Configurar enlaces
-      document.getElementById('viewProfileLink').addEventListener('click', function(e) {
+      document.getElementById('viewProfileLink').addEventListener('click', (e) => {
         e.preventDefault();
         window.location.href = '/users';
       });
     }
     
-    // Función para cargar datos del usuario
     async function loadUserData() {
       try {
         const userData = await getCurrentUser();
@@ -303,272 +396,354 @@
         console.error('Error al cargar datos del usuario:', error);
       }
     }
-    
-    // Función para cargar PPRs supervisados
-    async function loadPPRs() {
-      try {
-        // Simulación de carga de PPRs supervisados - en la implementación real haría una llamada a la API
-        const mockPPRs = [
-          {
-            id: 1,
-            nombre_ppr: "Salud Materno Neonatal",
-            unidad_funcional: "Hospital Central",
-            cumplimiento: 85,
-            meta_anual: 1000,
-            avance: 850,
-            brecha: 150,
-            estado: "OK"
-          },
-          {
-            id: 2,
-            nombre_ppr: "Salud Infantil",
-            unidad_funcional: "Clínica Norte",
-            cumplimiento: 65,
-            meta_anual: 800,
-            avance: 520,
-            brecha: 280,
-            estado: "ATENCIÓN"
-          },
-          {
-            id: 3,
-            nombre_ppr: "Enfermedades Crónicas",
-            unidad_funcional: "Centro Salud Este",
-            cumplimiento: 45,
-            meta_anual: 1200,
-            avance: 540,
-            brecha: 660,
-            estado: "CRÍTICO"
-          },
-          {
-            id: 4,
-            nombre_ppr: "Prevención de Enfermedades",
-            unidad_funcional: "Hospital Central",
-            cumplimiento: 95,
-            meta_anual: 600,
-            avance: 570,
-            brecha: 30,
-            estado: "OK"
-          }
-        ];
+
+    // --- 2. Filter Population & Utility Functions ---
+    let fullPprData = null; // Cache for performance tab
+    let lastLoadedPprId = null;
+    let lastLoadedYear = null;
+
+    function populateSummaryYearFilter(allData) {
+        const yearSelect = document.getElementById('summaryYearSelect');
+        const years = [...new Set(allData.map(p => p.anio))].sort((a, b) => b - a);
         
-        const tbody = document.getElementById('pprsTableBody');
-        tbody.innerHTML = '';
+        const currentSelection = yearSelect.value;
+        yearSelect.innerHTML = '<option value="">Todos los Años</option>';
         
-        mockPPRs.forEach(ppr => {
-          const row = document.createElement('tr');
-          
-          // Determinar color del progreso y estado
-          let estadoClass = '';
-          let estadoIcon = '';
-          if (ppr.estado === 'CRÍTICO') {
-            estadoClass = 'status-red';
-            estadoIcon = '🔴';
-          } else if (ppr.estado === 'ATENCIÓN') {
-            estadoClass = 'status-yellow';
-            estadoIcon = '🟡';
-          } else {
-            estadoClass = 'status-green';
-            estadoIcon = '🟢';
-          }
-          
-          // Determinar clase de barra de progreso
-          let progressBarClass = '';
-          if (ppr.cumplimiento < 70) {
-            progressBarClass = 'bg-danger';
-          } else if (ppr.cumplimiento < 90) {
-            progressBarClass = 'bg-warning';
-          } else {
-            progressBarClass = 'bg-success';
-          }
-          
-          row.innerHTML = `
-            <td>${ppr.nombre_ppr}</td>
-            <td>${ppr.unidad_funcional}</td>
-            <td>
-              <div class="progress" title="${ppr.cumplimiento}%">
-                <div class="progress-bar ${progressBarClass}" 
-                     role="progressbar" 
-                     style="width: ${ppr.cumplimiento}%" 
-                     aria-valuenow="${ppr.cumplimiento}" 
-                     aria-valuemin="0" 
-                     aria-valuemax="100"></div>
-              </div>
-              <small class="text-muted">${ppr.cumplimiento}%</small>
-            </td>
-            <td>${ppr.meta_anual}</td>
-            <td>${ppr.avance}</td>
-            <td>${ppr.brecha}</td>
-            <td><span class="${estadoClass}">${estadoIcon}</span></td>
-            <td>
-              <button class="btn btn-sm btn-outline-primary" onclick="viewPPR(${ppr.id})">Ver</button>
-            </td>
-          `;
-          tbody.appendChild(row);
+        years.forEach(year => {
+            const selected = year == currentSelection ? 'selected' : '';
+            yearSelect.innerHTML += `<option value="${year}" ${selected}>${year}</option>`;
         });
-      } catch (error) {
-        console.error('Error al cargar PPRs:', error);
-        showError('Error al cargar los PPRs supervisados');
-      }
     }
-    
-    // Función para cargar métricas del dashboard
-    async function loadMetrics() {
-      try {
-        // Simulación de carga de métricas - en la implementación real haría una llamada a la API
-        const mockMetrics = {
-          pprsSupervisados: 12,
-          cumplimientoGeneral: 78,
-          pprsDesviacion: 3,
-          pprsCriticos: 2
-        };
-        
-        document.getElementById('pprsSupervisados').textContent = mockMetrics.pprsSupervisados;
-        document.getElementById('cumplimientoGeneral').textContent = mockMetrics.cumplimientoGeneral + '%';
-        document.getElementById('progressBarGeneral').style.width = mockMetrics.cumplimientoGeneral + '%';
-        document.getElementById('progressBarGeneral').setAttribute('aria-valuenow', mockMetrics.cumplimientoGeneral);
-        document.getElementById('pprsDesviacion').textContent = mockMetrics.pprsDesviacion;
-        document.getElementById('pprsCriticos').textContent = mockMetrics.pprsCriticos;
-      } catch (error) {
-        console.error('Error al cargar métricas:', error);
-        showError('Error al cargar las métricas del dashboard');
-      }
-    }
-    
-    // Función para ver detalles de un PPR
-    function viewPPR(pprId) {
-      // Redirigir a la vista detallada del PPR
-      window.location.href = `/ppr_detalle?id=${pprId}`;
-    }
-    
-    // Configurar el evento de cambio del filtro de periodo
-    document.getElementById('periodoSelect').addEventListener('change', function() {
-      // Actualizar datos según periodo seleccionado
-      loadPPRs();
-    });
-    
-    // Configurar el evento de cambio del filtro de unidad
-    document.getElementById('unidadSelect').addEventListener('change', function() {
-      // Filtrar PPRs por unidad seleccionada
-      filterPPRsByUnidad(this.value);
-    });
-    
-    // Configurar el botón de reset de filtros
-    document.getElementById('resetFilters').addEventListener('click', function() {
-      document.getElementById('periodoSelect').value = 'Octubre 2025';
-      document.getElementById('unidadSelect').value = 'Todos';
-      loadPPRs();
-    });
-    
-    // Función para filtrar PPRs por unidad funcional
-    function filterPPRsByUnidad(unidad) {
-      const tbody = document.getElementById('pprsTableBody');
-      tbody.innerHTML = '';
+
+    function populateDiscrepancyFilters(summaryData) {
+      const yearSelect = document.getElementById('discrepancyYearSelect');
+      const pprSelect = document.getElementById('discrepancyPprSelect');
       
-      if (unidad === 'Todos') {
-        loadPPRs();
-        return;
-      }
+      const years = [...new Set(summaryData.map(p => p.anio))].sort((a, b) => b - a);
       
-      // Buscar PPRs que coincidan con la unidad
-      // En una implementación real, haríamos una nueva llamada a la API
-      // Aquí usamos los datos mock para filtrar
-      const mockPPRs = [
-        {
-          id: 1,
-          nombre_ppr: "Salud Materno Neonatal",
-          unidad_funcional: "Hospital Central",
-          cumplimiento: 85,
-          meta_anual: 1000,
-          avance: 850,
-          brecha: 150,
-          estado: "OK"
-        },
-        {
-          id: 2,
-          nombre_ppr: "Salud Infantil",
-          unidad_funcional: "Clínica Norte",
-          cumplimiento: 65,
-          meta_anual: 800,
-          avance: 520,
-          brecha: 280,
-          estado: "ATENCIÓN"
-        },
-        {
-          id: 3,
-          nombre_ppr: "Enfermedades Crónicas",
-          unidad_funcional: "Centro Salud Este",
-          cumplimiento: 45,
-          meta_anual: 1200,
-          avance: 540,
-          brecha: 660,
-          estado: "CRÍTICO"
-        },
-        {
-          id: 4,
-          nombre_ppr: "Prevención de Enfermedades",
-          unidad_funcional: "Hospital Central",
-          cumplimiento: 95,
-          meta_anual: 600,
-          avance: 570,
-          brecha: 30,
-          estado: "OK"
-        }
-      ];
-      
-      const filteredPPRs = unidad === 'Todos' ? mockPPRs : mockPPRs.filter(ppr => ppr.unidad_funcional === unidad);
-      
-      filteredPPRs.forEach(ppr => {
-        const row = document.createElement('tr');
-        
-        // Determinar color del progreso y estado
-        let estadoClass = '';
-        let estadoIcon = '';
-        if (ppr.estado === 'CRÍTICO') {
-          estadoClass = 'status-red';
-          estadoIcon = '🔴';
-        } else if (ppr.estado === 'ATENCIÓN') {
-          estadoClass = 'status-yellow';
-          estadoIcon = '🟡';
-        } else {
-          estadoClass = 'status-green';
-          estadoIcon = '🟢';
-        }
-        
-        // Determinar clase de barra de progreso
-        let progressBarClass = '';
-        if (ppr.cumplimiento < 70) {
-          progressBarClass = 'bg-danger';
-        } else if (ppr.cumplimiento < 90) {
-          progressBarClass = 'bg-warning';
-        } else {
-          progressBarClass = 'bg-success';
-        }
-        
-        row.innerHTML = `
-          <td>${ppr.nombre_ppr}</td>
-          <td>${ppr.unidad_funcional}</td>
-          <td>
-            <div class="progress" title="${ppr.cumplimiento}%">
-              <div class="progress-bar ${progressBarClass}" 
-                   role="progressbar" 
-                   style="width: ${ppr.cumplimiento}%" 
-                   aria-valuenow="${ppr.cumplimiento}" 
-                   aria-valuemin="0" 
-                   aria-valuemax="100"></div>
-            </div>
-            <small class="text-muted">${ppr.cumplimiento}%</small>
-          </td>
-          <td>${ppr.meta_anual}</td>
-          <td>${ppr.avance}</td>
-          <td>${ppr.brecha}</td>
-          <td><span class="${estadoClass}">${estadoIcon}</span></td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary" onclick="viewPPR(${ppr.id})">Ver</button>
-          </td>
-        `;
-        tbody.appendChild(row);
+      yearSelect.innerHTML = '<option value="">Seleccione Año</option>';
+      years.forEach(year => {
+        yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
+      });
+
+      pprSelect.innerHTML = '<option value="">Seleccione PPR</option>';
+      summaryData.forEach(ppr => {
+        pprSelect.innerHTML += `<option value="${ppr.id_ppr}">${ppr.nombre_ppr}</option>`;
       });
     }
+
+    function populatePerformanceFilters(summaryData) {
+      const yearSelect = document.getElementById('performanceYearSelect');
+      const pprSelect = document.getElementById('performancePprSelect');
+      
+      const years = [...new Set(summaryData.map(p => p.anio))].sort((a, b) => b - a);
+      
+      yearSelect.innerHTML = '<option value="">Seleccione Año</option>';
+      years.forEach(year => {
+        yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
+      });
+
+      pprSelect.innerHTML = '<option value="">Seleccione PPR</option>';
+      summaryData.forEach(ppr => {
+        pprSelect.innerHTML += `<option value="${ppr.id_ppr}">${ppr.nombre_ppr}</option>`;
+      });
+
+      document.getElementById('performanceProductSelect').innerHTML = '<option value="">--</option>';
+      document.getElementById('performanceActivitySelect').innerHTML = '<option value="">--</option>';
+    }
+
+    function populateProductFilter() {
+      const productSelect = document.getElementById('performanceProductSelect');
+      const currentSelection = productSelect.value;
+      
+      productSelect.innerHTML = '<option value="">Todos los Productos</option>';
+      if (fullPprData && fullPprData.productos) {
+        fullPprData.productos.forEach(product => {
+          const selected = product.codigo_producto == currentSelection ? 'selected' : '';
+          productSelect.innerHTML += `<option value="${product.codigo_producto}" ${selected}>${product.nombre_producto}</option>`;
+        });
+      }
+      
+      if (productSelect.value === "") {
+        document.getElementById('performanceActivitySelect').innerHTML = '<option value="">Todas las Actividades</option>';
+      }
+    }
+
+    function populateActivityFilter() {
+      const productCode = document.getElementById('performanceProductSelect').value;
+      const activitySelect = document.getElementById('performanceActivitySelect');
+      const currentSelection = activitySelect.value;
+
+      activitySelect.innerHTML = '<option value="">Todas las Actividades</option>';
+
+      if (productCode && fullPprData && fullPprData.productos) {
+        const selectedProduct = fullPprData.productos.find(p => p.codigo_producto == productCode);
+        if (selectedProduct) {
+          selectedProduct.actividades.forEach(activity => {
+            const selected = activity.codigo_actividad == currentSelection ? 'selected' : '';
+            activitySelect.innerHTML += `<option value="${activity.codigo_actividad}" ${selected}>${activity.nombre_actividad}</option>`;
+          });
+        }
+      }
+    }
+
+    // --- 3. Main Data Loading & Rendering ---
+    async function loadSummaryData() {
+      try {
+        const yearSelect = document.getElementById('summaryYearSelect');
+        const selectedYear = yearSelect.value;
+        
+        let url = '/dashboard/assigned-pprs-summary';
+        if (selectedYear) {
+            url += `?year=${selectedYear}`;
+        }
+        
+        const summaryData = await callAPI(url, 'GET');
+        
+        // Populate Year Filter only if empty
+        if (yearSelect.options.length <= 1) {
+            const allData = await callAPI('/dashboard/assigned-pprs-summary', 'GET');
+            populateSummaryYearFilter(allData);
+        }
+
+        // Update KPI Titles
+        const yearLabel = selectedYear ? `(${selectedYear})` : "(Todos los Años)";
+        document.querySelectorAll('.kpi-year').forEach(el => el.textContent = yearLabel);
+        
+        const pprsConDiscrepancias = summaryData.filter(p => p.total_diferencias > 0).length;
+        const pprsBajoRendimiento = summaryData.filter(p => p.avance_general < 70).length;
+        const totalAvance = summaryData.reduce((acc, p) => acc + p.avance_general, 0);
+        const cumplimientoGeneral = summaryData.length > 0 ? (totalAvance / summaryData.length).toFixed(2) : 0;
+
+        document.getElementById('kpiDiscrepancias').textContent = pprsConDiscrepancias;
+        document.getElementById('kpiBajoRendimiento').textContent = pprsBajoRendimiento;
+        document.getElementById('kpiCumplimientoGeneral').textContent = `${cumplimientoGeneral}%`;
+        document.getElementById('kpiProgressBarGeneral').style.width = `${cumplimientoGeneral}%`;
+
+        const tableBody = document.getElementById('summaryTableBody');
+        tableBody.innerHTML = '';
+
+        populateDiscrepancyFilters(summaryData);
+        populatePerformanceFilters(summaryData);
+
+        if (summaryData.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">No hay PPRs asignados o datos para mostrar.</td></tr>';
+          return;
+        }
+
+        summaryData.forEach(ppr => {
+          const row = document.createElement('tr');
+          const discrepanciaStatus = ppr.total_diferencias > 0 ? '<span class="badge bg-danger">🔴 Con Discrepancias</span>' : '<span class="badge bg-success">🟢 Sin Discrepancias</span>';
+          let rendimientoStatus = '';
+          if (ppr.avance_general < 70) {
+            rendimientoStatus = '<span class="badge bg-danger">🔴 Crítico</span>';
+          } else if (ppr.avance_general < 90) {
+            rendimientoStatus = '<span class="badge bg-warning text-dark">🟡 En Riesgo</span>';
+          } else {
+            rendimientoStatus = '<span class="badge bg-success">🟢 OK</span>';
+          }
+          row.innerHTML = `
+            <td class="fw-bold">${ppr.nombre_ppr}</td>
+            <td>
+              <div class="progress" title="${ppr.avance_general}%">
+                <div class="progress-bar" role="progressbar" style="width: ${ppr.avance_general}%" aria-valuenow="${ppr.avance_general}"></div>
+              </div>
+              <small class="text-muted">${ppr.avance_general}% (${ppr.anio})</small>
+            </td>
+            <td>${discrepanciaStatus}</td>
+            <td>${rendimientoStatus}</td>
+            <td><button class="btn btn-sm btn-outline-primary" onclick="analizarPPR(${ppr.id_ppr}, ${ppr.anio})">Analizar</button></td>
+          `;
+          tableBody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Error loading summary data:', error);
+        document.getElementById('summaryTableBody').innerHTML = '<tr><td colspan="5" class="text-center p-4 text-danger">Error al cargar el resumen.</td></tr>';
+      }
+    }
+
+    function analizarPPR(pprId, anio) {
+      const discrepancyTab = new bootstrap.Tab(document.getElementById('discrepancy-tab'));
+      discrepancyTab.show();
+      document.getElementById('discrepancyYearSelect').value = anio;
+      document.getElementById('discrepancyPprSelect').value = pprId;
+      loadDiscrepancyData();
+    }
+
+    async function loadDiscrepancyData() {
+      const pprId = document.getElementById('discrepancyPprSelect').value;
+      const year = document.getElementById('discrepancyYearSelect').value;
+      const tableBody = document.getElementById('discrepancyTableBody');
+      if (!pprId || !year) {
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4">Seleccione un año y un PPR para ver las discrepancias.</td></tr>';
+        return;
+      }
+      tableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4">Cargando discrepancias...</td></tr>';
+      try {
+        const results = await callAPI(`/comparison/ppr/${pprId}/comparison-results`, 'GET');
+        tableBody.innerHTML = '';
+        let differencesFound = false;
+        results.data.forEach(item => {
+          if (item.anio != year) return;
+          const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+          months.forEach(month => {
+            const progDiff = item.diferencias[month].prog;
+            const ejecDiff = item.diferencias[month].ejec;
+            const addRow = (type, pprVal, ceplanVal, diffVal) => {
+                if (diffVal !== 0 && diffVal !== null) {
+                    differencesFound = true;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><b>${item.codigo_subproducto}</b><br>${item.nombre_subproducto}</td>
+                        <td>${month.toUpperCase()}</td>
+                        <td><span class="badge bg-secondary">${type}</span></td>
+                        <td>${pprVal.toFixed(2)}</td>
+                        <td>${ceplanVal.toFixed(2)}</td>
+                        <td><span class="fw-bold ${diffVal > 0 ? 'text-success' : 'text-danger'}">${diffVal.toFixed(2)}</span></td>
+                    `;
+                    tableBody.appendChild(row);
+                }
+            };
+            addRow('Programación', item.ppr_programado_mensual[month], item.ceplan_programado_mensual[month], progDiff);
+            addRow('Ejecución', item.ppr_ejecutado_mensual[month], item.ceplan_ejecutado_mensual[month], ejecDiff);
+          });
+        });
+        if (!differencesFound) {
+          tableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4">🟢 No se encontraron discrepancias para el PPR y año seleccionados.</td></tr>';
+        }
+      } catch (error) {
+        console.error('Error loading discrepancy data:', error);
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-danger">Error al cargar las discrepancias.</td></tr>';
+      }
+    }
+
+    async function loadPerformanceData() {
+      const pprId = document.getElementById('performancePprSelect').value;
+      const year = document.getElementById('performanceYearSelect').value;
+      
+      const annualBody = document.getElementById('performanceAnnualTableBody');
+      const monthlyBody = document.getElementById('performanceMonthlyTableBody');
+      const monthlyHead = document.getElementById('performanceMonthlyTableHead');
+
+      const setInitialMessage = () => {
+        annualBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Seleccione un año y un PPR para ver el rendimiento.</td></tr>';
+        monthlyBody.innerHTML = '';
+        monthlyHead.innerHTML = '';
+        fullPprData = null;
+        lastLoadedPprId = null;
+        lastLoadedYear = null;
+        populateProductFilter();
+      };
+
+      if (!pprId || !year) {
+        setInitialMessage();
+        return;
+      }
+
+      if (fullPprData && lastLoadedPprId == pprId && lastLoadedYear == year) {
+          renderPerformanceTables();
+          return;
+      }
+
+      annualBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Cargando...</td></tr>';
+      monthlyBody.innerHTML = '<tr><td colspan="25" class="text-center p-4">Cargando...</td></tr>';
+      try {
+        const results = await callAPI(`/pprs/${pprId}/estructura`, 'GET');
+        fullPprData = results.data;
+        lastLoadedPprId = pprId;
+        lastLoadedYear = year;
+        populateProductFilter();
+        renderPerformanceTables();
+      } catch (error) {
+        console.error('Error loading performance data:', error);
+        annualBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-danger">Error al cargar datos.</td></tr>';
+        monthlyBody.innerHTML = '<tr><td colspan="25" class="text-center p-4 text-danger">Error al cargar datos.</td></tr>';
+      }
+    }
+
+    function renderPerformanceTables() {
+        if (!fullPprData) return;
+        const productCode = document.getElementById('performanceProductSelect').value;
+        const activityCode = document.getElementById('performanceActivitySelect').value;
+        const annualBody = document.getElementById('performanceAnnualTableBody');
+        const monthlyHead = document.getElementById('performanceMonthlyTableHead');
+        const monthlyBody = document.getElementById('performanceMonthlyTableBody');
+        let subproductos = fullPprData.productos.flatMap(p => p.actividades.flatMap(a => a.subproductos));
+        if (productCode) {
+            subproductos = fullPprData.productos.filter(p => p.codigo_producto == productCode).flatMap(p => p.actividades.flatMap(a => a.subproductos));
+        }
+        if (activityCode) {
+            subproductos = fullPprData.productos.flatMap(p => p.actividades).filter(a => a.codigo_actividad == activityCode).flatMap(a => a.subproductos);
+        }
+        annualBody.innerHTML = '';
+        if (subproductos.length === 0) annualBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">No hay subproductos para la selección actual.</td></tr>';
+        subproductos.forEach(sp => {
+          if (!sp.programacion_ppr) return;
+          const meta = sp.programacion_ppr.meta_anual || 0;
+          const avance = Object.values(sp.programacion_ppr.ejecutado).reduce((a, b) => a + b, 0);
+          const brecha = meta - avance;
+          const cumplimiento = meta > 0 ? (avance / meta * 100) : 0;
+          let progressBarClass = '';
+          let textColorClass = '';
+          if (cumplimiento < 70) {
+            progressBarClass = 'bg-danger';
+            textColorClass = 'text-danger';
+          } else if (cumplimiento < 90) {
+            progressBarClass = 'bg-warning';
+            textColorClass = 'text-warning';
+          } else {
+            progressBarClass = 'bg-success';
+            textColorClass = 'text-success';
+          }
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><b>${sp.codigo_subproducto}</b><br>${sp.nombre_subproducto}</td>
+            <td>${meta.toFixed(2)}</td>
+            <td>${avance.toFixed(2)}</td>
+            <td class="${brecha < 0 ? 'text-danger' : ''}">${brecha.toFixed(2)}</td>
+            <td>
+              <div class="progress" title="${cumplimiento.toFixed(2)}%">
+                <div class="progress-bar ${progressBarClass}" role="progressbar" style="width: ${cumplimiento}%"></div>
+              </div>
+              <small class="${textColorClass} fw-bold">${cumplimiento.toFixed(2)}%</small>
+            </td>
+          `;
+          annualBody.appendChild(row);
+        });
+        const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        monthlyHead.innerHTML = `
+          <tr>
+            <th rowspan="2">SUBPRODUCTO</th>
+            ${months.map(m => `<th colspan="2" class="text-center">${m.toUpperCase()}</th>`).join('')}
+          </tr>
+          <tr>
+            ${months.map(() => `<th class="text-center">Prog</th><th class="text-center">Ejec</th>`).join('')}
+          </tr>
+        `;
+        monthlyBody.innerHTML = '';
+        if (subproductos.length === 0) monthlyBody.innerHTML = '<tr><td colspan="25" class="text-center p-4">No hay subproductos para la selección actual.</td></tr>';
+        subproductos.forEach(sp => {
+          if (!sp.programacion_ppr) return;
+          const row = document.createElement('tr');
+          let monthlyCells = '';
+          months.forEach(m => {
+            const prog = sp.programacion_ppr.programado[m] || 0;
+            const ejec = sp.programacion_ppr.ejecutado[m] || 0;
+            monthlyCells += `<td class="text-end">${prog.toFixed(0)}</td><td class="text-end table-success">${ejec.toFixed(0)}</td>`;
+          });
+          row.innerHTML = `<td><b>${sp.codigo_subproducto}</b><br>${sp.nombre_subproducto}</td>${monthlyCells}`;
+          monthlyBody.appendChild(row);
+        });
+    }
+
+    // --- 4. Action Handlers & Event Listeners ---
+    document.getElementById('summaryYearSelect').addEventListener('change', loadSummaryData);
+    document.getElementById('discrepancyYearSelect').addEventListener('change', loadDiscrepancyData);
+    document.getElementById('discrepancyPprSelect').addEventListener('change', loadDiscrepancyData);
+    document.getElementById('performanceYearSelect').addEventListener('change', loadPerformanceData);
+    document.getElementById('performancePprSelect').addEventListener('change', loadPerformanceData);
+    document.getElementById('performanceProductSelect').addEventListener('change', () => { populateActivityFilter(); renderPerformanceTables(); });
+    document.getElementById('performanceActivitySelect').addEventListener('change', renderPerformanceTables);
   </script>
 </body>
 </html>
