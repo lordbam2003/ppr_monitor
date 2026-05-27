@@ -9,6 +9,9 @@ class TrazadorEnum(str, Enum):
 
 
 class CarteraServiciosBase(SQLModel):
+    # Año de la cartera
+    anio: int = Field(index=True, description="Año fiscal de la cartera de servicios")
+    
     # Programa - separated into code and name
     programa_codigo: str = Field(max_length=10, description="Código del programa")
     programa_nombre: str = Field(max_length=200, description="Nombre del programa")

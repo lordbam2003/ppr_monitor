@@ -75,6 +75,137 @@ class MonthlyAvanceData(BaseModel):
     prog_mensual: float
     ejec_mensual: float
 
+class PPRPerformance(BaseModel):
+    id_ppr: int
+    nombre_ppr: str
+    cumplimiento: float
+
+class CriticalAlert(BaseModel):
+    subproducto: str
+    ppr: str
+    programado: float
+    ejecutado: float
+    porcentaje: float
+
+class AdminStatsResponse(BaseModel):
+    total_pprs: int
+    total_subproductos: int
+    total_diferencias: int
+    cumplimiento_periodo: float
+    avance_anual: float
+    subproductos_en_riesgo: int
+    ppr_performance_ranking: List[PPRPerformance]
+    alertas_criticas: List[CriticalAlert]
+
+@router.get("/admin-stats", response_model=AdminStatsResponse)
+async def get_admin_stats(
+    year: int,
+    month: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    """
+    Obtener estadísticas globales para el Dashboard de Administrador (Vista Gerencial)
+    """
+    if current_user.rol not in [InternalRoleEnum.admin, InternalRoleEnum.responsable_planificacion]:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    # 1. Obtener todos los PPRs del año
+    pprs = session.exec(select(PPR).where(PPR.anio == year)).all()
+    if not pprs:
+        return AdminStatsResponse(
+            total_pprs=0, total_subproductos=0, total_diferencias=0,
+            cumplimiento_periodo=0, avance_anual=0, subproductos_en_riesgo=0,
+            ppr_performance_ranking=[], alertas_criticas=[]
+        )
+
+    ppr_ids = [p.id_ppr for p in pprs]
+    ppr_map = {p.id_ppr: p.nombre_ppr for p in pprs}
+
+    # 2. Obtener subproductos y programaciones en bloque
+    subproductos_query = (
+        select(Subproducto, Producto.id_ppr)
+        .join(Actividad, Actividad.id_actividad == Subproducto.id_actividad)
+        .join(Producto, Producto.id_producto == Actividad.id_producto)
+        .where(Producto.id_ppr.in_(ppr_ids))
+    )
+    subproductos_db = session.exec(subproductos_query).all()
+    
+    sub_ids = [s.id_subproducto for s, _ in subproductos_db]
+    programaciones = session.exec(
+        select(ProgramacionPPR).where(ProgramacionPPR.id_subproducto.in_(sub_ids), ProgramacionPPR.anio == year)
+    ).all()
+    prog_map = {p.id_subproducto: p for p in programaciones}
+
+    # 3. Cálculos Institucionales
+    total_prog_periodo = 0.0
+    total_ejec_periodo = 0.0
+    total_meta_anual = 0.0
+    total_ejec_anual = 0.0
+    riesgo_count = 0
+    
+    ppr_stats = {pid: {"prog": 0.0, "ejec": 0.0} for pid in ppr_ids}
+    alertas = []
+
+    months_to_date = [month_name_map[m] for m in range(1, month + 1)]
+    all_months = [month_name_map[m] for m in range(1, 13)]
+
+    for sub, ppr_id in subproductos_db:
+        prog = prog_map.get(sub.id_subproducto)
+        if not prog: continue
+
+        # Acumulados del periodo (Ene -> Mes seleccionado)
+        sub_prog_p = sum(getattr(prog, f"prog_{m}", 0) or 0 for m in months_to_date)
+        sub_ejec_p = sum(getattr(prog, f"ejec_{m}", 0) or 0 for m in months_to_date)
+        
+        total_prog_periodo += sub_prog_p
+        total_ejec_periodo += sub_ejec_p
+        
+        # Ranking data
+        ppr_stats[ppr_id]["prog"] += sub_prog_p
+        ppr_stats[ppr_id]["ejec"] += sub_ejec_p
+
+        # Avance Anual
+        total_meta_anual += prog.meta_anual or 0
+        sub_ejec_total = sum(getattr(prog, f"ejec_{m}", 0) or 0 for m in all_months)
+        total_ejec_anual += sub_ejec_total
+
+        # Alertas y Riesgos
+        cumplimiento_sub = (sub_ejec_p / sub_prog_p * 100) if sub_prog_p > 0 else 0
+        if sub_prog_p > 0 and cumplimiento_sub < 70:
+            riesgo_count += 1
+            alertas.append(CriticalAlert(
+                subproducto=sub.nombre_subproducto,
+                ppr=ppr_map[ppr_id],
+                programado=sub_prog_p,
+                ejecutado=sub_ejec_p,
+                porcentaje=round(cumplimiento_sub, 2)
+            ))
+
+    # 4. Consolidar Ranking
+    ranking = []
+    for pid, stats in ppr_stats.items():
+        cump = (stats["ejec"] / stats["prog"] * 100) if stats["prog"] > 0 else 0
+        ranking.append(PPRPerformance(id_ppr=pid, nombre_ppr=ppr_map[pid], cumplimiento=round(cump, 2)))
+    
+    ranking.sort(key=lambda x: x.cumplimiento, reverse=True)
+    alertas.sort(key=lambda x: x.porcentaje) # Peores primero
+
+    # 5. Conteo de diferencias (PPR vs CEPLAN)
+    from app.models.programacion import Diferencia
+    total_dif = session.exec(select(Diferencia).where(Diferencia.anio == year)).all()
+
+    return AdminStatsResponse(
+        total_pprs=len(pprs),
+        total_subproductos=len(subproductos_db),
+        total_diferencias=len(total_dif),
+        cumplimiento_periodo=round((total_ejec_periodo / total_prog_periodo * 100), 2) if total_prog_periodo > 0 else 0,
+        avance_anual=round((total_ejec_anual / total_meta_anual * 100), 2) if total_meta_anual > 0 else 0,
+        subproductos_en_riesgo=riesgo_count,
+        ppr_performance_ranking=ranking,
+        alertas_criticas=alertas[:10] # Top 10 críticas
+    )
+
 @router.get("/pprs-assigned", response_model=List[AssignedPPRResponse])
 async def get_assigned_pprs(
     current_user: User = Depends(get_current_active_user),

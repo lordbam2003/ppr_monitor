@@ -264,38 +264,72 @@ class CarteraService:
         text = ' '.join(text.split())
         return text
 
-    def store_cartera_data(self, cartera_data: Dict, session: Session) -> Dict:
-        """Store Cartera de Servicios data to database"""
+    def store_cartera_data(self, cartera_data: Dict, session: Session, anio: int) -> Dict:
+        """
+        Store Cartera de Servicios data to database using incremental logic (Upsert).
+        If a record for the same year and hierarchy codes exists, it updates it.
+        Otherwise, it creates a new one.
+        """
         try:
             cartera_records = cartera_data.get("cartera", [])
-            
-            # Clear existing cartera data if needed or append
-            # For now, we'll just add new records (you could implement a clear strategy based on requirements)
-            
             stored_count = 0
+            updated_count = 0
+            
             for record in cartera_records:
-                new_cartera = CarteraServicios(
-                    programa_codigo=record.get("programa_codigo", ""),
-                    programa_nombre=record.get("programa_nombre", ""),
-                    producto_codigo=record.get("producto_codigo", ""),
-                    producto_nombre=record.get("producto_nombre", ""),
-                    actividad_codigo=record.get("actividad_codigo", ""),
-                    actividad_nombre=record.get("actividad_nombre", ""),
-                    sub_producto_codigo=record.get("sub_producto_codigo", ""),
-                    sub_producto_nombre=record.get("sub_producto_nombre", ""),
-                    trazador=record.get("trazador", ""),
-                    unidad_medida=record.get("unidad_medida", "")
-                )
-                
-                session.add(new_cartera)
-                stored_count += 1
+                # Extract identifiers
+                prog_cod = record.get("programa_codigo", "")
+                prod_cod = record.get("producto_codigo", "")
+                act_cod = record.get("actividad_codigo", "")
+                sub_cod = record.get("sub_producto_codigo", "")
+
+                # Search for existing record for the same year and code hierarchy
+                existing = session.exec(
+                    select(CarteraServicios).where(
+                        CarteraServicios.anio == anio,
+                        CarteraServicios.programa_codigo == prog_cod,
+                        CarteraServicios.producto_codigo == prod_cod,
+                        CarteraServicios.actividad_codigo == act_cod,
+                        CarteraServicios.sub_producto_codigo == sub_cod
+                    )
+                ).first()
+
+                if existing:
+                    # Update existing record names and attributes (in case they changed in the catalog)
+                    existing.programa_nombre = record.get("programa_nombre", "")
+                    existing.producto_nombre = record.get("producto_nombre", "")
+                    existing.actividad_nombre = record.get("actividad_nombre", "")
+                    existing.sub_producto_nombre = record.get("sub_producto_nombre", "")
+                    existing.trazador = record.get("trazador", "")
+                    existing.unidad_medida = record.get("unidad_medida", "")
+                    existing.fecha_actualizacion = datetime.now()
+                    session.add(existing)
+                    updated_count += 1
+                else:
+                    # Create new record
+                    new_cartera = CarteraServicios(
+                        anio=anio,
+                        programa_codigo=prog_cod,
+                        programa_nombre=record.get("programa_nombre", ""),
+                        producto_codigo=prod_cod,
+                        producto_nombre=record.get("producto_nombre", ""),
+                        actividad_codigo=act_cod,
+                        actividad_nombre=record.get("actividad_nombre", ""),
+                        sub_producto_codigo=sub_cod,
+                        sub_producto_nombre=record.get("sub_producto_nombre", ""),
+                        trazador=record.get("trazador", ""),
+                        unidad_medida=record.get("unidad_medida", "")
+                    )
+                    session.add(new_cartera)
+                    stored_count += 1
             
             session.commit()
-            logger.info(f"Successfully stored {stored_count} Cartera de Servicios records")
+            logger.info(f"Successfully processed Cartera for year {anio}: {stored_count} new, {updated_count} updated")
             
             return {
                 "stored_count": stored_count,
-                "message": f"Successfully stored {stored_count} service portfolio records"
+                "updated_count": updated_count,
+                "anio": anio,
+                "message": f"Se procesaron los registros de la cartera {anio}: {stored_count} nuevos, {updated_count} actualizados."
             }
             
         except Exception as e:

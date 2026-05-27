@@ -368,6 +368,11 @@ async function callAPIWithFile(endpoint, fileData, method = 'POST') {
         // Assuming fileData is an object with file information
         if (fileData instanceof File) {
             formData.append('file', fileData);
+        } else if (fileData instanceof FileList || Array.isArray(fileData)) {
+            // Support for multiple files
+            for (let i = 0; i < fileData.length; i++) {
+                formData.append('files', fileData[i]);
+            }
         } else if (fileData.file) {
             formData.append('file', fileData.file);
         } else {

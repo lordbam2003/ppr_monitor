@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
-from typing import List
+from typing import List, Optional
 import pandas as pd
 import os
 from pathlib import Path
@@ -25,15 +25,21 @@ router = APIRouter()
 
 @router.get("/", response_class=JSONResponse)
 async def get_pprs(
+    anio: Optional[int] = None,
     current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session)
 ):
     """
-    Obtener lista de PPRs
+    Obtener lista de PPRs, opcionalmente filtrada por año
     """
     try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) requesting PPR list")
-        pprs = session.exec(select(PPR)).all()
+        logger.info(f"User {current_user.nombre} ({current_user.email}) requesting PPR list. Filter year: {anio}")
+        
+        statement = select(PPR)
+        if anio:
+            statement = statement.where(PPR.anio == anio)
+        
+        pprs = session.exec(statement).all()
         # Convert to dict to ensure JSON serializable
         ppr_dicts = []
         for ppr in pprs:
@@ -471,44 +477,20 @@ async def get_ppr_estructura(
                 "nombre_producto": producto.nombre_producto,
                 "actividades": []
             }
-            
+
             actividades = session.exec(select(Actividad).where(Actividad.id_producto == producto.id_producto)).all()
-            
+
             for actividad in actividades:
                 actividad_structure = {
                     "codigo_actividad": actividad.codigo_actividad,
                     "nombre_actividad": actividad.nombre_actividad,
                     "subproductos": []
                 }
-                
-                subproductos = session.exec(select(Subproducto).where(Subproducto.id_actividad == actividad.id_actividad)).all()
-                
-                for subproducto in subproductos:
-                    subproducto_structure = {
-                        "id_subproducto": subproducto.id_subproducto,
-                        "codigo_subproducto": subproducto.codigo_subproducto,
-                        "nombre_subproducto": subproducto.nombre_subproducto,
-                        "unidad_medida": subproducto.unidad_medida,
-                        "programacion_ppr": None,
-                        "programacion_ceplan": None
-                    }
-                    
-                    # Get PPR programming data
-                    programacion_ppr = session.exec(
-                        select(ProgramacionPPR).where(
-                            ProgramacionPPR.id_subproducto == subproducto.id_subproducto,
-                            ProgramacionPPR.anio == ppr.anio
-                        )
-                    ).first()
-                    
-                    if programacion_ppr:
-                        subproducto_structure["programacion_ppr"] = {
-                            "meta_anual": programacion_ppr.meta_anual or 0,
-                            "programado": { "ene": programacion_ppr.prog_ene or 0, "feb": programacion_ppr.prog_feb or 0, "mar": programacion_ppr.prog_mar or 0, "abr": programacion_ppr.prog_abr or 0, "may": programacion_ppr.prog_may or 0, "jun": programacion_ppr.prog_jun or 0, "jul": programacion_ppr.prog_jul or 0, "ago": programacion_ppr.prog_ago or 0, "sep": programacion_ppr.prog_sep or 0, "oct": programacion_ppr.prog_oct or 0, "nov": programacion_ppr.prog_nov or 0, "dic": programacion_ppr.prog_dic or 0 },
-                            "ejecutado": { "ene": programacion_ppr.ejec_ene or 0, "feb": programacion_ppr.ejec_feb or 0, "mar": programacion_ppr.ejec_mar or 0, "abr": programacion_ppr.ejec_abr or 0, "may": programacion_ppr.ejec_may or 0, "jun": programacion_ppr.ejec_jun or 0, "jul": programacion_ppr.ejec_jul or 0, "ago": programacion_ppr.ejec_ago or 0, "sep": programacion_ppr.ejec_sep or 0, "oct": programacion_ppr.ejec_oct or 0, "nov": programacion_ppr.ejec_nov or 0, "dic": programacion_ppr.ejec_dic or 0 }
-                        }
 
-                    # Get CEPLAN programming data
+                subproductos = session.exec(select(Subproducto).where(Subproducto.id_actividad == actividad.id_actividad)).all()
+
+                for subproducto in subproductos:
+                    # Get CEPLAN programming data first to check visibility
                     programacion_ceplan = session.exec(
                         select(ProgramacionCEPLAN).where(
                             ProgramacionCEPLAN.id_subproducto == subproducto.id_subproducto,
@@ -516,21 +498,54 @@ async def get_ppr_estructura(
                         )
                     ).first()
 
+                    # Calculate CEPLAN meta (sum of monthly programming)
+                    meta_ceplan = 0
+                    ceplan_data_dict = None
                     if programacion_ceplan:
-                        # CEPLAN meta is the sum of its monthly values
                         meta_ceplan = sum([getattr(programacion_ceplan, f'prog_{m}', 0) or 0 for m in ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']])
-                        subproducto_structure["programacion_ceplan"] = {
+                        ceplan_data_dict = {
                             "meta_anual": meta_ceplan,
                             "programado": { "ene": programacion_ceplan.prog_ene or 0, "feb": programacion_ceplan.prog_feb or 0, "mar": programacion_ceplan.prog_mar or 0, "abr": programacion_ceplan.prog_abr or 0, "may": programacion_ceplan.prog_may or 0, "jun": programacion_ceplan.prog_jun or 0, "jul": programacion_ceplan.prog_jul or 0, "ago": programacion_ceplan.prog_ago or 0, "sep": programacion_ceplan.prog_sep or 0, "oct": programacion_ceplan.prog_oct or 0, "nov": programacion_ceplan.prog_nov or 0, "dic": programacion_ceplan.prog_dic or 0 },
                             "ejecutado": { "ene": programacion_ceplan.ejec_ene or 0, "feb": programacion_ceplan.ejec_feb or 0, "mar": programacion_ceplan.ejec_mar or 0, "abr": programacion_ceplan.ejec_abr or 0, "may": programacion_ceplan.ejec_may or 0, "jun": programacion_ceplan.ejec_jun or 0, "jul": programacion_ceplan.ejec_jul or 0, "ago": programacion_ceplan.ejec_ago or 0, "sep": programacion_ceplan.ejec_sep or 0, "oct": programacion_ceplan.ejec_oct or 0, "nov": programacion_ceplan.ejec_nov or 0, "dic": programacion_ceplan.ejec_dic or 0 }
                         }
 
+                    # RULE: Only show subproducts that have CEPLAN programming > 0
+                    if meta_ceplan <= 0:
+                        continue
+
+                    subproducto_structure = {
+                        "id_subproducto": subproducto.id_subproducto,
+                        "codigo_subproducto": subproducto.codigo_subproducto,
+                        "nombre_subproducto": subproducto.nombre_subproducto,
+                        "unidad_medida": subproducto.unidad_medida,
+                        "programacion_ppr": None,
+                        "programacion_ceplan": ceplan_data_dict
+                    }
+
+                    # Get PPR programming data
+                    programacion_ppr = session.exec(
+                        select(ProgramacionPPR).where(
+                            ProgramacionPPR.id_subproducto == subproducto.id_subproducto,
+                            ProgramacionPPR.anio == ppr.anio
+                        )
+                    ).first()
+
+                    if programacion_ppr:
+                        subproducto_structure["programacion_ppr"] = {
+                            "meta_anual": programacion_ppr.meta_anual or 0,
+                            "programado": { "ene": programacion_ppr.prog_ene or 0, "feb": programacion_ppr.prog_feb or 0, "mar": programacion_ppr.prog_mar or 0, "abr": programacion_ppr.prog_abr or 0, "may": programacion_ppr.prog_may or 0, "jun": programacion_ppr.prog_jun or 0, "jul": programacion_ppr.prog_jul or 0, "ago": programacion_ppr.prog_ago or 0, "sep": programacion_ppr.prog_sep or 0, "oct": programacion_ppr.prog_oct or 0, "nov": programacion_ppr.prog_nov or 0, "dic": programacion_ppr.prog_dic or 0 },
+                            "ejecutado": { "ene": programacion_ppr.ejec_ene or 0, "feb": programacion_ppr.ejec_feb or 0, "mar": programacion_ppr.ejec_mar or 0, "abr": programacion_ppr.ejec_abr or 0, "may": programacion_ppr.ejec_may or 0, "jun": programacion_ppr.ejec_jun or 0, "jul": programacion_ppr.ejec_jul or 0, "ago": programacion_ppr.ejec_ago or 0, "sep": programacion_ppr.ejec_sep or 0, "oct": programacion_ppr.ejec_oct or 0, "nov": programacion_ppr.ejec_nov or 0, "dic": programacion_ppr.ejec_dic or 0 }
+                        }
+
                     actividad_structure["subproductos"].append(subproducto_structure)
-                
-                producto_structure["actividades"].append(actividad_structure)
-            
-            ppr_structure["productos"].append(producto_structure)
-        
+
+                # Only add activity if it has visible subproducts
+                if actividad_structure["subproductos"]:
+                    producto_structure["actividades"].append(actividad_structure)
+
+            # Only add product if it has visible activities
+            if producto_structure["actividades"]:
+                ppr_structure["productos"].append(producto_structure)        
         logger.info(f"Successfully retrieved PPR structure for ID {ppr_id} for user {current_user.email}")
         return {
             "data": ppr_structure,
@@ -555,189 +570,29 @@ async def create_ppr_from_cartera(
     session: Session = Depends(get_session)
 ):
     """
-    Create PPR structure from existing Cartera de Servicios records
+    Create or update PPR structure from existing Cartera de Servicios records for a specific year.
+    This is an incremental operation: it only adds missing elements.
     """
     try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to create PPR from Cartera records for year {anio}")
+        logger.info(f"User {current_user.nombre} ({current_user.email}) initiating PPR synchronization from Cartera for year {anio}")
         
-        # Get all cartera records
-        cartera_records = session.exec(select(CarteraServicios)).all()
+        from app.services.ppr_service import synchronize_ppr_with_cartera
         
-        if not cartera_records:
-            logger.warning(f"No Cartera records found for PPR creation by user {current_user.email}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No hay registros de Cartera de Servicios disponibles"
-            )
-        
-        # Group cartera records by program code to create PPRs
-        ppr_data = {}
-        for record in cartera_records:
-            programa_codigo = record.programa_codigo
-            programa_nombre = record.programa_nombre
-            
-            if programa_codigo not in ppr_data:
-                ppr_data[programa_codigo] = {
-                    "nombre": programa_nombre,
-                    "productos": {}
-                }
-            
-            # Ensure producto exists
-            producto_codigo = record.producto_codigo
-            producto_nombre = record.producto_nombre
-            if producto_codigo not in ppr_data[programa_codigo]["productos"]:
-                ppr_data[programa_codigo]["productos"][producto_codigo] = {
-                    "nombre": producto_nombre,
-                    "actividades": {}
-                }
-            
-            # Ensure actividad exists
-            actividad_codigo = record.actividad_codigo
-            actividad_nombre = record.actividad_nombre
-            if actividad_codigo not in ppr_data[programa_codigo]["productos"][producto_codigo]["actividades"]:
-                ppr_data[programa_codigo]["productos"][producto_codigo]["actividades"][actividad_codigo] = {
-                    "nombre": actividad_nombre,
-                    "subproductos": {}
-                }
-            
-            # Add subproducto
-            subproducto_codigo = record.sub_producto_codigo
-            subproducto_nombre = record.sub_producto_nombre
-            unidad_medida = record.unidad_medida
-            if subproducto_codigo not in ppr_data[programa_codigo]["productos"][producto_codigo]["actividades"][actividad_codigo]["subproductos"]:
-                ppr_data[programa_codigo]["productos"][producto_codigo]["actividades"][actividad_codigo]["subproductos"][subproducto_codigo] = {
-                    "nombre": subproducto_nombre,
-                    "unidad_medida": unidad_medida
-                }
-        
-        created_pprs = []
-        total_subproductos = 0
-        
-        # Process each PPR
-        for programa_codigo, ppr_info in ppr_data.items():
-            # Check if PPR already exists for this year and code
-            existing_ppr = session.exec(
-                select(PPR).where(PPR.codigo_ppr == programa_codigo, PPR.anio == anio)
-            ).first()
-            
-            if existing_ppr:
-                logger.warning(f"PPR with code {programa_codigo} already exists for year {anio}, skipping creation")
-                continue
-            
-            # Create new PPR
-            new_ppr = PPR(
-                codigo_ppr=programa_codigo,
-                nombre_ppr=ppr_info["nombre"],
-                anio=anio,
-                estado="activo"
-            )
-            
-            session.add(new_ppr)
-            session.flush()  # Get the ID without committing
-            
-            # Create products for this PPR
-            for producto_codigo, producto_info in ppr_info["productos"].items():
-                new_producto = Producto(
-                    codigo_producto=producto_codigo,
-                    nombre_producto=producto_info["nombre"],
-                    id_ppr=new_ppr.id_ppr
-                )
-                
-                session.add(new_producto)
-                session.flush()  # Get the ID
-                
-                # Create activities for this product
-                for actividad_codigo, actividad_info in producto_info["actividades"].items():
-                    new_actividad = Actividad(
-                        codigo_actividad=actividad_codigo,
-                        nombre_actividad=actividad_info["nombre"],
-                        id_producto=new_producto.id_producto
-                    )
-                    
-                    session.add(new_actividad)
-                    session.flush()  # Get the ID
-                    
-                    # Create subproducts for this activity
-                    for subproducto_codigo, subproducto_info in actividad_info["subproductos"].items():
-                        new_subproducto = Subproducto(
-                            codigo_subproducto=subproducto_codigo,
-                            nombre_subproducto=subproducto_info["nombre"],
-                            unidad_medida=subproducto_info["unidad_medida"],
-                            id_actividad=new_actividad.id_actividad
-                        )
-                        
-                        session.add(new_subproducto)
-                        session.flush()  # Get the ID
-                        
-                        # Create PPR programming with zero values
-                        programacion_ppr = ProgramacionPPR(
-                            id_subproducto=new_subproducto.id_subproducto,
-                            anio=anio,
-                            meta_anual=0.0,
-                            prog_ene=0.0, ejec_ene=0.0,
-                            prog_feb=0.0, ejec_feb=0.0,
-                            prog_mar=0.0, ejec_mar=0.0,
-                            prog_abr=0.0, ejec_abr=0.0,
-                            prog_may=0.0, ejec_may=0.0,
-                            prog_jun=0.0, ejec_jun=0.0,
-                            prog_jul=0.0, ejec_jul=0.0,
-                            prog_ago=0.0, ejec_ago=0.0,
-                            prog_sep=0.0, ejec_sep=0.0,
-                            prog_oct=0.0, ejec_oct=0.0,
-                            prog_nov=0.0, ejec_nov=0.0,
-                            prog_dic=0.0, ejec_dic=0.0
-                        )
-                        
-                        session.add(programacion_ppr)
-                        
-                        # Create CEPLAN programming with zero values
-                        programacion_ceplan = ProgramacionCEPLAN(
-                            id_subproducto=new_subproducto.id_subproducto,
-                            anio=anio,
-                            prog_ene=0.0, ejec_ene=0.0,
-                            prog_feb=0.0, ejec_feb=0.0,
-                            prog_mar=0.0, ejec_mar=0.0,
-                            prog_abr=0.0, ejec_abr=0.0,
-                            prog_may=0.0, ejec_may=0.0,
-                            prog_jun=0.0, ejec_jun=0.0,
-                            prog_jul=0.0, ejec_jul=0.0,
-                            prog_ago=0.0, ejec_ago=0.0,
-                            prog_sep=0.0, ejec_sep=0.0,
-                            prog_oct=0.0, ejec_oct=0.0,
-                            prog_nov=0.0, ejec_nov=0.0,
-                            prog_dic=0.0, ejec_dic=0.0
-                        )
-                        
-                        session.add(programacion_ceplan)
-                        
-                        total_subproductos += 1
-            
-            session.commit()
-            created_pprs.append({
-                "id_ppr": new_ppr.id_ppr,
-                "codigo_ppr": new_ppr.codigo_ppr,
-                "nombre_ppr": new_ppr.nombre_ppr
-            })
-        
-        logger.info(f"Successfully created PPR structures from Cartera data by user {current_user.email}. Created {len(created_pprs)} PPRs with {total_subproductos} subproducts.")
+        # Use the incremental synchronization service
+        result = synchronize_ppr_with_cartera(year=anio, session=session)
         
         return {
-            "data": {
-                "created_pprs": created_pprs,
-                "total_pprs": len(created_pprs),
-                "total_subproductos": total_subproductos
-            },
-            "message": f"Se crearon exitosamente {len(created_pprs)} PPR(s) a partir de los registros de Cartera de Servicios para el año {anio}"
+            "data": result,
+            "message": result["message"]
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error creating PPR from Cartera data by user {current_user.email}: {str(e)}", exc_info=True)
-        session.rollback()
+        logger.error(f"Error synchronizing PPR from Cartera data: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al crear el PPR a partir de Cartera: {str(e)}"
+            detail=f"Error al sincronizar el PPR a partir de la Cartera: {str(e)}"
         )
 
 

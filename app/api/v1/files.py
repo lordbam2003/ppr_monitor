@@ -1,7 +1,7 @@
 import shutil
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
 from fastapi.responses import JSONResponse
-from typing import Optional
+from typing import Optional, List
 import pandas as pd
 import os
 from pathlib import Path
@@ -761,70 +761,94 @@ async def update_values_ppr(preview_data, session, current_user):
 
 @router.post("/ceplan")
 async def upload_ceplan(
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     current_user: User = Depends(require_responsable_planificacion),
     session: Session = Depends(get_session)
 ):
     """
-    Endpoint para subir archivo CEPLAN (solo para Responsables Planificación o Administradores)
+    Endpoint para subir múltiples archivos CEPLAN simultáneamente.
+    Procesa cada archivo y consolida todos los subproductos en una única vista previa.
     """
-    logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to upload CEPLAN file: {file.filename}")
+    logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to upload {len(files)} CEPLAN files")
     
-    # Verificar tipo de archivo
-    if not file.filename.lower().endswith(('.xlsx', '.xls')):
-        logger.warning(f"Invalid file type attempted by {current_user.email}: {file.filename}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Solo se permiten archivos Excel (.xlsx, .xls)"
-        )
+    all_subproductos = []
+    processed_files_info = []
+    total_size = 0
     
-    # Limitar tamaño del archivo (100MB)
-    file_content = await file.read()
-    if len(file_content) > 100 * 1024 * 1024:  # 100MB
-        logger.warning(f"File too large attempted by {current_user.email}: {file.filename}, size: {len(file_content)} bytes")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo es demasiado grande. Máximo permitido: 100MB"
-        )
-    
-    # Verificar si el archivo ya ha sido subido antes (por hash)
-    file_hash = get_file_hash(file_content)
-    
-    # Guardar archivo temporalmente
+    # Directorio de carga
     upload_dir = Path("uploads/ceplan")
     upload_dir.mkdir(parents=True, exist_ok=True)
-    file_path = upload_dir / f"{file_hash}_{file.filename}"
     
-    with open(file_path, "wb") as f:
-        f.write(file_content)
+    for file in files:
+        # Verificar tipo de archivo
+        if not file.filename.lower().endswith(('.xlsx', '.xls')):
+            logger.warning(f"Tipo de archivo inválido omitido: {file.filename}")
+            continue
+        
+        # Leer contenido
+        file_content = await file.read()
+        file_size = len(file_content)
+        total_size += file_size
+        
+        # Generar hash y guardar
+        file_hash = get_file_hash(file_content)
+        file_path = upload_dir / f"{file_hash}_{file.filename}"
+        
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+            
+        try:
+            # Extraer datos de este archivo
+            ceplan_data = ceplan_extractor_service.extract_ceplan_from_file(file_path)
+            
+            # Acumular subproductos (ceplan_extractor_service devuelve un dict con la lista 'subproductos')
+            file_subproductos = ceplan_data.get('subproductos', [])
+            all_subproductos.extend(file_subproductos)
+            
+            processed_files_info.append({
+                "filename": file.filename,
+                "size": file_size,
+                "hash": file_hash,
+                "subproductos_count": len(file_subproductos)
+            })
+            
+            logger.info(f"Archivo {file.filename} procesado exitosamente: {len(file_subproductos)} subproductos encontrados.")
+            
+        except Exception as e:
+            logger.error(f"Error procesando archivo {file.filename}: {str(e)}", exc_info=True)
+            if file_path.exists():
+                file_path.unlink()
+            # Continuamos con el siguiente archivo en lugar de fallar todo el lote
+            
+    if not all_subproductos:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No se pudo extraer ningún subproducto válido de los archivos proporcionados."
+        )
+
+    # Consolidar metadatos y datos
+    consolidated_info = {
+        "files": processed_files_info,
+        "total_files": len(processed_files_info),
+        "total_size": total_size,
+        "uploaded_by": current_user.nombre,
+        "upload_date": datetime.now().isoformat(),
+        "ceplan_data": {
+            "subproductos": all_subproductos,
+            "total_subproductos": len(all_subproductos)
+        }
+    }
     
     try:
-        # Use the new CEPLAN extraction service to parse the CEPLAN file with correct structure
-        # This extracts: Subproductos → Unidad de Medida → Programación/Ejecución por mes
-        ceplan_data = ceplan_extractor_service.extract_ceplan_from_file(file_path)
-        
-        # Add upload metadata
-        ceplan_info = {
-            "filename": file.filename,
-            "size": len(file_content),
-            "hash": file_hash,
-            "uploaded_by": current_user.nombre,
-            "upload_date": datetime.now().isoformat(),
-            "ceplan_data": ceplan_data  # Include the parsed CEPLAN data with complete structure
-        }
-        
-        # Store the parsed data temporarily for preview
-        import json
-        import uuid
-        
         # Clean the data structure to handle NaN and other non-JSON-serializable values
-        cleaned_ceplan_info = clean_data_for_json(ceplan_info)
+        cleaned_ceplan_info = clean_data_for_json(consolidated_info)
         
         # Create a temporary storage directory
         temp_dir = Path("temp/uploads")
         temp_dir.mkdir(parents=True, exist_ok=True)
         
-        # Generate a unique ID for this upload
+        # Generate a unique ID for this unified upload
+        import uuid
         preview_id = str(uuid.uuid4())
         temp_file_path = temp_dir / f"{preview_id}.json"
         
@@ -833,23 +857,20 @@ async def upload_ceplan(
         with open(temp_file_path, 'w', encoding='utf-8') as f:
             f.write(json_data)
         
-        logger.info(f"CEPLAN file parsed successfully with complete structure: {preview_id}")
+        logger.info(f"Lote de archivos CEPLAN procesado y consolidado: {preview_id} (Total subproductos: {len(all_subproductos)})")
         return {
-            "message": "Archivo CEPLAN subido y procesado exitosamente",
+            "message": f"Se procesaron exitosamente {len(processed_files_info)} archivos CEPLAN.",
             "preview_id": preview_id,
             "file_info": cleaned_ceplan_info,
-            "status": "parsed_for_preview"
+            "status": "parsed_for_preview",
+            "total_subproductos": len(all_subproductos)
         }
         
     except Exception as e:
-        logger.error(f"Error processing CEPLAN file {file.filename} uploaded by {current_user.email}: {str(e)}", exc_info=True)
-        # Borrar archivo si hubo error en el procesamiento
-        if file_path.exists():
-            file_path.unlink()
-        
+        logger.error(f"Error al guardar la vista previa consolidada: {str(e)}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Error al procesar el archivo: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al generar la vista previa unificada: {str(e)}"
         )
 
 

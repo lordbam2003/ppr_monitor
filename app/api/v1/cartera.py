@@ -28,16 +28,17 @@ def get_file_hash(file_content: bytes) -> str:
     return hashlib.sha256(file_content).hexdigest()
 
 
-@router.post("/")
+@router.post("/upload")
 async def upload_cartera(
+    anio: int,
     file: UploadFile = File(...),
     current_user: User = Depends(require_responsable_planificacion),  # Only Budget Responsible or Admin
     session: Session = Depends(get_session)
 ):
     """
-    Endpoint para subir archivo de Cartera de Servicios
+    Endpoint para subir archivo de Cartera de Servicios para un año específico
     """
-    logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to upload Cartera file: {file.filename}")
+    logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to upload Cartera file: {file.filename} for year {anio}")
     
     # Verificar tipo de archivo
     if not file.filename.lower().endswith(('.xlsx', '.xls')):
@@ -69,12 +70,12 @@ async def upload_cartera(
         cartera_data = cartera_service.extract_cartera_from_file(file_path)
         
         # Store the parsed data temporarily for preview
-        import json
         import uuid
         
-        # Add upload metadata
+        # Add upload metadata, including the target year
         cartera_with_metadata = {
             "filename": file.filename,
+            "anio": anio,
             "size": len(file_content),
             "uploaded_by": current_user.nombre,
             "upload_date": datetime.now().isoformat(),
@@ -103,8 +104,8 @@ async def upload_cartera(
         
     except Exception as e:
         logger.error(f"Error processing Cartera file {file.filename} uploaded by {current_user.email}: {str(e)}", exc_info=True)
-        # Borrar archivo si hubo error en el procesamiento
-        if file_path.exists():
+        # Borrar archivo si hubo error en el procesamiento y file_path existe
+        if 'file_path' in locals() and file_path.exists():
             file_path.unlink()
         
         raise HTTPException(
@@ -257,11 +258,18 @@ async def commit_cartera(
         with open(temp_file_path, 'r', encoding='utf-8') as f:
             preview_data = json.load(f)
         
+        # Extract the year from metadata
+        anio = preview_data.get('anio')
+        if not anio:
+            logger.warning(f"Year not found in preview data for ID: {preview_id}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se encontró el año en los datos de la vista previa"
+            )
+
         # Process and store the Cartera data in the database
-        # The preview_data contains the full file structure, but we need to extract the cartera array
-        # It's located in preview_data['cartera_data']['cartera']
         cartera_data_to_store = preview_data.get('cartera_data', {})
-        cartera_result = cartera_service.store_cartera_data(cartera_data_to_store, session)
+        cartera_result = cartera_service.store_cartera_data(cartera_data_to_store, session, anio)
         
         # Remove the temporary file after successful commit
         temp_file_path.unlink()
