@@ -22,6 +22,44 @@ logger = get_logger(__name__)
 
 router = APIRouter()
 
+# --- Endpoints de Sincronización (Poner antes de los que usan {id}) ---
+
+@router.post("/sync-with-ceplan", response_class=JSONResponse)
+async def sync_with_ceplan(
+    anio: int,
+    current_user: User = Depends(require_responsable_ppr),
+    session: Session = Depends(get_session)
+):
+    """
+    Sincronizar las metas programadas desde CEPLAN hacia PPR para un año específico.
+    """
+    try:
+        logger.info(f"User {current_user.nombre} initiating meta synchronization CEPLAN -> PPR for year {anio}")
+        from app.services.ppr_service import sync_ppr_with_ceplan_data
+        result = sync_ppr_with_ceplan_data(year=anio, session=session)
+        return {"data": result, "message": result["message"]}
+    except Exception as e:
+        logger.error(f"Error in CEPLAN sync: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error al sincronizar con CEPLAN: {str(e)}")
+
+@router.post("/create-from-cartera", response_class=JSONResponse)
+async def create_ppr_from_cartera(
+    anio: int,
+    current_user: User = Depends(require_responsable_ppr),
+    session: Session = Depends(get_session)
+):
+    """
+    Crear o actualizar estructura PPR desde Cartera.
+    """
+    try:
+        from app.services.ppr_service import synchronize_ppr_with_cartera
+        result = synchronize_ppr_with_cartera(year=anio, session=session)
+        return {"data": result, "message": result["message"]}
+    except Exception as e:
+        logger.error(f"Error synchronizing PPR from Cartera: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error al sincronizar: {str(e)}")
+
+# --- Endpoints de CRUD ---
 
 @router.get("/", response_class=JSONResponse)
 async def get_pprs(
@@ -29,40 +67,15 @@ async def get_pprs(
     current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session)
 ):
-    """
-    Obtener lista de PPRs, opcionalmente filtrada por año
-    """
+    """Obtener lista de PPRs filtrada por año"""
     try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) requesting PPR list. Filter year: {anio}")
-        
         statement = select(PPR)
-        if anio:
-            statement = statement.where(PPR.anio == anio)
-        
+        if anio: statement = statement.where(PPR.anio == anio)
         pprs = session.exec(statement).all()
-        # Convert to dict to ensure JSON serializable
-        ppr_dicts = []
-        for ppr in pprs:
-            ppr_dict = {
-                "id_ppr": ppr.id_ppr,
-                "codigo_ppr": ppr.codigo_ppr,
-                "nombre_ppr": ppr.nombre_ppr,
-                "anio": ppr.anio,
-                "estado": ppr.estado,
-                "fecha_creacion": ppr.fecha_creacion.isoformat() if ppr.fecha_creacion else None,
-                "fecha_actualizacion": ppr.fecha_actualizacion.isoformat() if ppr.fecha_actualizacion else None
-            }
-            ppr_dicts.append(ppr_dict)
-        
-        logger.info(f"Successfully retrieved {len(ppr_dicts)} PPRs for user {current_user.email}")
-        return {"data": ppr_dicts, "message": "PPRs obtenidos exitosamente"}
+        return {"data": [p.model_dump() for p in pprs], "message": "PPRs obtenidos exitosamente"}
     except Exception as e:
-        logger.error(f"Error retrieving PPRs for user {current_user.email}: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener los PPRs: {str(e)}"
-        )
-
+        logger.error(f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{ppr_id}", response_class=JSONResponse)
 async def get_ppr(
@@ -70,42 +83,9 @@ async def get_ppr(
     current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session)
 ):
-    """
-    Obtener un PPR por ID
-    """
-    try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) requesting PPR with ID {ppr_id}")
-        ppr = session.get(PPR, ppr_id)
-        if not ppr:
-            logger.warning(f"PPR with ID {ppr_id} not found, requested by user {current_user.email}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="PPR no encontrado"
-            )
-        
-        # Convert to dict to ensure JSON serializable
-        ppr_dict = {
-            "id_ppr": ppr.id_ppr,
-            "codigo_ppr": ppr.codigo_ppr,
-            "nombre_ppr": ppr.nombre_ppr,
-            "anio": ppr.anio,
-            "estado": ppr.estado,
-            "fecha_creacion": ppr.fecha_creacion.isoformat() if ppr.fecha_creacion else None,
-            "fecha_actualizacion": ppr.fecha_actualizacion.isoformat() if ppr.fecha_actualizacion else None
-        }
-        
-        logger.info(f"Successfully retrieved PPR {ppr_id} for user {current_user.email}")
-        return {"data": ppr_dict, "message": "PPR obtenido exitosamente"}
-    except HTTPException:
-        logger.warning(f"HTTP exception when retrieving PPR {ppr_id} for user {current_user.email}")
-        raise
-    except Exception as e:
-        logger.error(f"Error retrieving PPR {ppr_id} for user {current_user.email}: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener el PPR: {str(e)}"
-        )
-
+    ppr = session.get(PPR, ppr_id)
+    if not ppr: raise HTTPException(status_code=404, detail="PPR no encontrado")
+    return {"data": ppr.model_dump(), "message": "PPR obtenido"}
 
 @router.post("/", response_class=JSONResponse)
 async def create_ppr(
@@ -113,116 +93,11 @@ async def create_ppr(
     current_user: User = Depends(require_responsable_ppr),
     session: Session = Depends(get_session)
 ):
-    """
-    Crear un nuevo PPR
-    """
-    try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to create PPR with code {ppr_data.codigo_ppr} for year {ppr_data.anio}")
-        
-        # Verificar si ya existe un PPR con el mismo código y año
-        existing_ppr = session.exec(
-            select(PPR).where(PPR.codigo_ppr == ppr_data.codigo_ppr, PPR.anio == ppr_data.anio)
-        ).first()
-        
-        if existing_ppr:
-            logger.warning(f"Attempt to create duplicate PPR with code {ppr_data.codigo_ppr} and year {ppr_data.anio} by user {current_user.email}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Ya existe un PPR con el mismo código y año"
-            )
-        
-        # Crear nuevo PPR
-        new_ppr = PPR(
-            codigo_ppr=ppr_data.codigo_ppr,
-            nombre_ppr=ppr_data.nombre_ppr,
-            anio=ppr_data.anio,
-            estado=ppr_data.estado
-        )
-        
-        session.add(new_ppr)
-        session.commit()
-        session.refresh(new_ppr)
-        
-        # Convert to dict to ensure JSON serializable
-        new_ppr_dict = {
-            "id_ppr": new_ppr.id_ppr,
-            "codigo_ppr": new_ppr.codigo_ppr,
-            "nombre_ppr": new_ppr.nombre_ppr,
-            "anio": new_ppr.anio,
-            "estado": new_ppr.estado,
-            "fecha_creacion": new_ppr.fecha_creacion.isoformat() if new_ppr.fecha_creacion else None,
-            "fecha_actualizacion": new_ppr.fecha_actualizacion.isoformat() if new_ppr.fecha_actualizacion else None
-        }
-        
-        logger.info(f"Successfully created PPR {new_ppr.id_ppr} with code {ppr_data.codigo_ppr} by user {current_user.email}")
-        return {"data": new_ppr_dict, "message": "PPR creado exitosamente"}
-    except HTTPException:
-        logger.warning(f"HTTP exception when creating PPR for user {current_user.email}")
-        raise
-    except Exception as e:
-        logger.error(f"Error creating PPR for user {current_user.email}: {str(e)}", exc_info=True)
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al crear el PPR: {str(e)}"
-        )
-
-
-@router.put("/{ppr_id}", response_class=JSONResponse)
-async def update_ppr(
-    ppr_id: int,
-    ppr_data: PPRBase,
-    current_user: User = Depends(require_responsable_ppr),
-    session: Session = Depends(get_session)
-):
-    """
-    Actualizar un PPR existente
-    """
-    try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to update PPR with ID {ppr_id}")
-        
-        ppr = session.get(PPR, ppr_id)
-        if not ppr:
-            logger.warning(f"Attempt to update non-existent PPR {ppr_id} by user {current_user.email}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="PPR no encontrado"
-            )
-        
-        # Actualizar campos
-        ppr.codigo_ppr = ppr_data.codigo_ppr
-        ppr.nombre_ppr = ppr_data.nombre_ppr
-        ppr.anio = ppr_data.anio
-        ppr.estado = ppr_data.estado
-        
-        session.add(ppr)
-        session.commit()
-        session.refresh(ppr)
-        
-        # Convert to dict to ensure JSON serializable
-        ppr_dict = {
-            "id_ppr": ppr.id_ppr,
-            "codigo_ppr": ppr.codigo_ppr,
-            "nombre_ppr": ppr.nombre_ppr,
-            "anio": ppr.anio,
-            "estado": ppr.estado,
-            "fecha_creacion": ppr.fecha_creacion.isoformat() if ppr.fecha_creacion else None,
-            "fecha_actualizacion": ppr.fecha_actualizacion.isoformat() if ppr.fecha_actualizacion else None
-        }
-        
-        logger.info(f"Successfully updated PPR {ppr_id} by user {current_user.email}")
-        return {"data": ppr_dict, "message": "PPR actualizado exitosamente"}
-    except HTTPException:
-        logger.warning(f"HTTP exception when updating PPR {ppr_id} for user {current_user.email}")
-        raise
-    except Exception as e:
-        logger.error(f"Error updating PPR {ppr_id} for user {current_user.email}: {str(e)}", exc_info=True)
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar el PPR: {str(e)}"
-        )
-
+    new_ppr = PPR(**ppr_data.model_dump())
+    session.add(new_ppr)
+    session.commit()
+    session.refresh(new_ppr)
+    return {"data": new_ppr.model_dump(), "message": "Creado"}
 
 @router.delete("/{ppr_id}", response_class=JSONResponse)
 async def delete_ppr(
@@ -230,36 +105,11 @@ async def delete_ppr(
     current_user: User = Depends(require_responsable_ppr),
     session: Session = Depends(get_session)
 ):
-    """
-    Eliminar un PPR
-    """
-    try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to delete PPR with ID {ppr_id}")
-        
-        ppr = session.get(PPR, ppr_id)
-        if not ppr:
-            logger.warning(f"Attempt to delete non-existent PPR {ppr_id} by user {current_user.email}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="PPR no encontrado"
-            )
-        
-        session.delete(ppr)
-        session.commit()
-        
-        logger.info(f"Successfully deleted PPR {ppr_id} by user {current_user.email}")
-        return {"message": "PPR eliminado exitosamente"}
-    except HTTPException:
-        logger.warning(f"HTTP exception when deleting PPR {ppr_id} for user {current_user.email}")
-        raise
-    except Exception as e:
-        logger.error(f"Error deleting PPR {ppr_id} for user {current_user.email}: {str(e)}", exc_info=True)
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al eliminar el PPR: {str(e)}"
-        )
-
+    ppr = session.get(PPR, ppr_id)
+    if not ppr: raise HTTPException(status_code=404, detail="No encontrado")
+    session.delete(ppr)
+    session.commit()
+    return {"message": "Eliminado"}
 
 @router.delete("/by-year/{year}", response_class=JSONResponse)
 async def delete_ppr_by_year(
@@ -267,402 +117,70 @@ async def delete_ppr_by_year(
     current_user: User = Depends(require_responsable_ppr),
     session: Session = Depends(get_session)
 ):
-    """
-    Eliminar todos los datos de PPR para un año específico.
-    """
-    try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) attempting to delete all PPR data for year {year}")
-        
-        deleted_count = delete_ppr_data_by_year(year=year, session=session)
-        
-        if deleted_count == 0:
-            logger.warning(f"No PPR data found for year {year} to delete, requested by user {current_user.email}")
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={"message": f"No se encontraron datos de PPR para el año {year}"}
-            )
-            
-        logger.info(f"Successfully deleted {deleted_count} PPRs for year {year} by user {current_user.email}")
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"message": f"Se eliminaron exitosamente {deleted_count} PPR(s) y todos sus datos asociados para el año {year}."}
-        )
-    except Exception as e:
-        logger.error(f"Error deleting PPR data for year {year} by user {current_user.email}: {str(e)}", exc_info=True)
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al eliminar los datos del PPR para el año {year}: {str(e)}"
-        )
+    deleted_count = delete_ppr_data_by_year(year=year, session=session)
+    return {"message": f"Eliminados {deleted_count} registros"}
 
-
-# Additional endpoints for PPR hierarchy management
-@router.get("/{ppr_id}/productos", response_class=JSONResponse)
-async def get_productos(
-    ppr_id: int,
-    current_user: User = Depends(get_current_active_user),
-    session: Session = Depends(get_session)
-):
-    """
-    Obtener productos de un PPR
-    """
-    try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) requesting products for PPR {ppr_id}")
-        
-        productos = session.exec(
-            select(Producto).where(Producto.id_ppr == ppr_id)
-        ).all()
-        # Convert to dict to ensure JSON serializable
-        producto_dicts = []
-        for producto in productos:
-            producto_dict = {
-                "id_producto": producto.id_producto,
-                "id_ppr": producto.id_ppr,
-                "codigo_producto": producto.codigo_producto,
-                "nombre_producto": producto.nombre_producto,
-                "fecha_creacion": producto.fecha_creacion.isoformat() if producto.fecha_creacion else None,
-                "fecha_actualizacion": producto.fecha_actualizacion.isoformat() if producto.fecha_actualizacion else None
-            }
-            producto_dicts.append(producto_dict)
-            
-        logger.info(f"Successfully retrieved {len(producto_dicts)} products for PPR {ppr_id} for user {current_user.email}")
-        return {"data": producto_dicts, "message": "Productos obtenidos exitosamente"}
-    except Exception as e:
-        logger.error(f"Error retrieving products for PPR {ppr_id} for user {current_user.email}: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener los productos: {str(e)}"
-        )
-
-
-@router.get("/{ppr_id}/detalle", response_class=JSONResponse)
-async def get_ppr_detalle(
-    ppr_id: int,
-    current_user: User = Depends(get_current_active_user),
-    session: Session = Depends(get_session)
-):
-    """
-    Obtener detalle completo de un PPR (productos, actividades, subproductos)
-    """
-    try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) requesting detailed information for PPR {ppr_id}")
-        
-        ppr = session.get(PPR, ppr_id)
-        if not ppr:
-            logger.warning(f"Request for non-existent PPR {ppr_id} by user {current_user.email}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="PPR no encontrado"
-            )
-        
-        # Convert PPR to dictionary
-        ppr_dict = {
-            "id_ppr": ppr.id_ppr,
-            "codigo_ppr": ppr.codigo_ppr,
-            "nombre_ppr": ppr.nombre_ppr,
-            "anio": ppr.anio,
-            "estado": ppr.estado,
-            "fecha_creacion": ppr.fecha_creacion.isoformat() if ppr.fecha_creacion else None,
-            "fecha_actualizacion": ppr.fecha_actualizacion.isoformat() if ppr.fecha_actualizacion else None
-        }
-        
-        # Obtener productos del PPR
-        productos = session.exec(
-            select(Producto).where(Producto.id_ppr == ppr_id)
-        ).all()
-        
-        # Convert productos to dictionaries with actividades
-        producto_dicts = []
-        for producto in productos:
-            producto_dict = {
-                "id_producto": producto.id_producto,
-                "id_ppr": producto.id_ppr,
-                "codigo_producto": producto.codigo_producto,
-                "nombre_producto": producto.nombre_producto,
-                "fecha_creacion": producto.fecha_creacion.isoformat() if producto.fecha_creacion else None,
-                "fecha_actualizacion": producto.fecha_actualizacion.isoformat() if producto.fecha_actualizacion else None
-            }
-            
-            # Obtener actividades del producto
-            actividades = session.exec(
-                select(Actividad).where(Actividad.id_producto == producto.id_producto)
-            ).all()
-            
-            # Convert actividades to dictionaries with subproductos
-            actividad_dicts = []
-            for actividad in actividades:
-                actividad_dict = {
-                    "id_actividad": actividad.id_actividad,
-                    "id_producto": actividad.id_producto,
-                    "codigo_actividad": actividad.codigo_actividad,
-                    "nombre_actividad": actividad.nombre_actividad,
-                    "fecha_creacion": actividad.fecha_creacion.isoformat() if actividad.fecha_creacion else None,
-                    "fecha_actualizacion": actividad.fecha_actualizacion.isoformat() if actividad.fecha_actualizacion else None
-                }
-                
-                # Obtener subproductos de la actividad
-                subproductos = session.exec(
-                    select(Subproducto).where(Subproducto.id_actividad == actividad.id_actividad)
-                ).all()
-                
-                # Convert subproductos to dictionaries
-                subproducto_dicts = []
-                for subproducto in subproductos:
-                    subproducto_dict = {
-                        "id_subproducto": subproducto.id_subproducto,
-                        "id_actividad": subproducto.id_actividad,
-                        "codigo_subproducto": subproducto.codigo_subproducto,
-                        "nombre_subproducto": subproducto.nombre_subproducto,
-                        "unidad_medida": subproducto.unidad_medida,
-                        "fecha_creacion": subproducto.fecha_creacion.isoformat() if subproducto.fecha_creacion else None,
-                        "fecha_actualizacion": subproducto.fecha_actualizacion.isoformat() if subproducto.fecha_actualizacion else None
-                    }
-                    subproducto_dicts.append(subproducto_dict)
-                
-                actividad_dict["subproductos"] = subproducto_dicts
-                actividad_dicts.append(actividad_dict)
-            
-            producto_dict["actividades"] = actividad_dicts
-            producto_dicts.append(producto_dict)
-        
-        ppr_detalle = {
-            "ppr": ppr_dict,
-            "productos": producto_dicts
-        }
-        
-        logger.info(f"Successfully retrieved detailed information for PPR {ppr_id} for user {current_user.email}")
-        return {"data": ppr_detalle, "message": "Detalle del PPR obtenido exitosamente"}
-    except Exception as e:
-        logger.error(f"Error retrieving detailed information for PPR {ppr_id} for user {current_user.email}: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener el detalle del PPR: {str(e)}"
-        )
 @router.get("/{ppr_id}/estructura", response_class=JSONResponse)
 async def get_ppr_estructura(
     ppr_id: int,
     current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session)
 ):
-    """
-    Obtener estructura del PPR, incluyendo datos de PPR y CEPLAN reales.
-    """
+    """Obtener estructura filtrada por CEPLAN"""
     try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) requesting PPR structure for ID {ppr_id}")
-        
         ppr = session.get(PPR, ppr_id)
-        if not ppr:
-            logger.warning(f"Request for non-existent PPR {ppr_id} by user {current_user.email}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="PPR no encontrado"
-            )
+        if not ppr: raise HTTPException(status_code=404, detail="No encontrado")
         
-        from app.models.programacion import ProgramacionPPR, ProgramacionCEPLAN
-
-        ppr_structure = {
-            "ppr": {
-                "codigo": ppr.codigo_ppr,
-                "nombre": ppr.nombre_ppr,
-                "anio": ppr.anio
-            },
-            "productos": []
-        }
-        
+        ppr_structure = {"ppr": {"codigo": ppr.codigo_ppr, "nombre": ppr.nombre_ppr, "anio": ppr.anio}, "productos": []}
         productos = session.exec(select(Producto).where(Producto.id_ppr == ppr_id)).all()
         
         for producto in productos:
-            producto_structure = {
-                "codigo_producto": producto.codigo_producto,
-                "nombre_producto": producto.nombre_producto,
-                "actividades": []
-            }
-
+            producto_structure = {"codigo_producto": producto.codigo_producto, "nombre_producto": producto.nombre_producto, "actividades": []}
             actividades = session.exec(select(Actividad).where(Actividad.id_producto == producto.id_producto)).all()
-
+            
             for actividad in actividades:
-                actividad_structure = {
-                    "codigo_actividad": actividad.codigo_actividad,
-                    "nombre_actividad": actividad.nombre_actividad,
-                    "subproductos": []
-                }
-
+                actividad_structure = {"codigo_actividad": actividad.codigo_actividad, "nombre_actividad": actividad.nombre_actividad, "subproductos": []}
                 subproductos = session.exec(select(Subproducto).where(Subproducto.id_actividad == actividad.id_actividad)).all()
-
+                
                 for subproducto in subproductos:
-                    # Get CEPLAN programming data first to check visibility
-                    programacion_ceplan = session.exec(
-                        select(ProgramacionCEPLAN).where(
-                            ProgramacionCEPLAN.id_subproducto == subproducto.id_subproducto,
-                            ProgramacionCEPLAN.anio == ppr.anio
-                        )
-                    ).first()
-
-                    # Calculate CEPLAN meta (sum of monthly programming)
-                    meta_ceplan = 0
-                    ceplan_data_dict = None
-                    if programacion_ceplan:
-                        meta_ceplan = sum([getattr(programacion_ceplan, f'prog_{m}', 0) or 0 for m in ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']])
-                        ceplan_data_dict = {
-                            "meta_anual": meta_ceplan,
-                            "programado": { "ene": programacion_ceplan.prog_ene or 0, "feb": programacion_ceplan.prog_feb or 0, "mar": programacion_ceplan.prog_mar or 0, "abr": programacion_ceplan.prog_abr or 0, "may": programacion_ceplan.prog_may or 0, "jun": programacion_ceplan.prog_jun or 0, "jul": programacion_ceplan.prog_jul or 0, "ago": programacion_ceplan.prog_ago or 0, "sep": programacion_ceplan.prog_sep or 0, "oct": programacion_ceplan.prog_oct or 0, "nov": programacion_ceplan.prog_nov or 0, "dic": programacion_ceplan.prog_dic or 0 },
-                            "ejecutado": { "ene": programacion_ceplan.ejec_ene or 0, "feb": programacion_ceplan.ejec_feb or 0, "mar": programacion_ceplan.ejec_mar or 0, "abr": programacion_ceplan.ejec_abr or 0, "may": programacion_ceplan.ejec_may or 0, "jun": programacion_ceplan.ejec_jun or 0, "jul": programacion_ceplan.ejec_jul or 0, "ago": programacion_ceplan.ejec_ago or 0, "sep": programacion_ceplan.ejec_sep or 0, "oct": programacion_ceplan.ejec_oct or 0, "nov": programacion_ceplan.ejec_nov or 0, "dic": programacion_ceplan.ejec_dic or 0 }
-                        }
-
-                    # RULE: Only show subproducts that have CEPLAN programming > 0
-                    if meta_ceplan <= 0:
-                        continue
-
-                    subproducto_structure = {
-                        "id_subproducto": subproducto.id_subproducto,
-                        "codigo_subproducto": subproducto.codigo_subproducto,
-                        "nombre_subproducto": subproducto.nombre_subproducto,
-                        "unidad_medida": subproducto.unidad_medida,
+                    cp = session.exec(select(ProgramacionCEPLAN).where(ProgramacionCEPLAN.id_subproducto == subproducto.id_subproducto, ProgramacionCEPLAN.anio == ppr.anio)).first()
+                    meta_c = sum([getattr(cp, f'prog_{m}', 0) or 0 for m in ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']]) if cp else 0
+                    
+                    if meta_c <= 0: continue # FILTRO CEPLAN
+                    
+                    sub_struct = {
+                        "id_subproducto": subproducto.id_subproducto, "codigo_subproducto": subproducto.codigo_subproducto, 
+                        "nombre_subproducto": subproducto.nombre_subproducto, "unidad_medida": subproducto.unidad_medida,
                         "programacion_ppr": None,
-                        "programacion_ceplan": ceplan_data_dict
+                        "programacion_ceplan": {
+                            "meta_anual": meta_c,
+                            "programado": {m: getattr(cp, f'prog_{m}', 0) or 0 for m in ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']},
+                            "ejecutado": {m: getattr(cp, f'ejec_{m}', 0) or 0 for m in ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']}
+                        } if cp else None
                     }
-
-                    # Get PPR programming data
-                    programacion_ppr = session.exec(
-                        select(ProgramacionPPR).where(
-                            ProgramacionPPR.id_subproducto == subproducto.id_subproducto,
-                            ProgramacionPPR.anio == ppr.anio
-                        )
-                    ).first()
-
-                    if programacion_ppr:
-                        subproducto_structure["programacion_ppr"] = {
-                            "meta_anual": programacion_ppr.meta_anual or 0,
-                            "programado": { "ene": programacion_ppr.prog_ene or 0, "feb": programacion_ppr.prog_feb or 0, "mar": programacion_ppr.prog_mar or 0, "abr": programacion_ppr.prog_abr or 0, "may": programacion_ppr.prog_may or 0, "jun": programacion_ppr.prog_jun or 0, "jul": programacion_ppr.prog_jul or 0, "ago": programacion_ppr.prog_ago or 0, "sep": programacion_ppr.prog_sep or 0, "oct": programacion_ppr.prog_oct or 0, "nov": programacion_ppr.prog_nov or 0, "dic": programacion_ppr.prog_dic or 0 },
-                            "ejecutado": { "ene": programacion_ppr.ejec_ene or 0, "feb": programacion_ppr.ejec_feb or 0, "mar": programacion_ppr.ejec_mar or 0, "abr": programacion_ppr.ejec_abr or 0, "may": programacion_ppr.ejec_may or 0, "jun": programacion_ppr.ejec_jun or 0, "jul": programacion_ppr.ejec_jul or 0, "ago": programacion_ppr.ejec_ago or 0, "sep": programacion_ppr.ejec_sep or 0, "oct": programacion_ppr.ejec_oct or 0, "nov": programacion_ppr.ejec_nov or 0, "dic": programacion_ppr.ejec_dic or 0 }
+                    
+                    pp = session.exec(select(ProgramacionPPR).where(ProgramacionPPR.id_subproducto == subproducto.id_subproducto, ProgramacionPPR.anio == ppr.anio)).first()
+                    if pp:
+                        sub_struct["programacion_ppr"] = {
+                            "meta_anual": pp.meta_anual or 0,
+                            "programado": {m: getattr(pp, f'prog_{m}', 0) or 0 for m in ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']},
+                            "ejecutado": {m: getattr(pp, f'ejec_{m}', 0) or 0 for m in ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']}
                         }
-
-                    actividad_structure["subproductos"].append(subproducto_structure)
-
-                # Only add activity if it has visible subproducts
-                if actividad_structure["subproductos"]:
-                    producto_structure["actividades"].append(actividad_structure)
-
-            # Only add product if it has visible activities
-            if producto_structure["actividades"]:
-                ppr_structure["productos"].append(producto_structure)        
-        logger.info(f"Successfully retrieved PPR structure for ID {ppr_id} for user {current_user.email}")
-        return {
-            "data": ppr_structure,
-            "message": "Estructura del PPR obtenida exitosamente"
-        }
-        
-    except HTTPException:
-        logger.warning(f"HTTP exception when retrieving PPR structure {ppr_id} for user {current_user.email}")
-        raise
+                    actividad_structure["subproductos"].append(sub_struct)
+                
+                if actividad_structure["subproductos"]: producto_structure["actividades"].append(actividad_structure)
+            
+            if producto_structure["actividades"]: ppr_structure["productos"].append(producto_structure)
+            
+        return {"data": ppr_structure, "message": "Estructura obtenida"}
     except Exception as e:
-        logger.error(f"Error retrieving PPR structure {ppr_id} for user {current_user.email}: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener la estructura del PPR: {str(e)}"
-        )
-
-
-@router.post("/create-from-cartera", response_class=JSONResponse)
-async def create_ppr_from_cartera(
-    anio: int,
-    current_user: User = Depends(require_responsable_ppr),  # Only Budget Responsible or Admin
-    session: Session = Depends(get_session)
-):
-    """
-    Create or update PPR structure from existing Cartera de Servicios records for a specific year.
-    This is an incremental operation: it only adds missing elements.
-    """
-    try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) initiating PPR synchronization from Cartera for year {anio}")
-        
-        from app.services.ppr_service import synchronize_ppr_with_cartera
-        
-        # Use the incremental synchronization service
-        result = synchronize_ppr_with_cartera(year=anio, session=session)
-        
-        return {
-            "data": result,
-            "message": result["message"]
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error synchronizing PPR from Cartera data: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al sincronizar el PPR a partir de la Cartera: {str(e)}"
-        )
-
+        logger.error(f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/data/ceplan-all")
 async def get_all_ceplan_data(
     current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session)
 ):
-    """
-    Endpoint para obtener todos los datos CEPLAN
-    """
-    try:
-        logger.info(f"User {current_user.nombre} ({current_user.email}) requesting all CEPLAN data")
-        
-        # Join CEPLAN data with subproductos to get more information
-        from app.models.ppr import Subproducto
-        
-        # Get all CEPLAN data with related subproduct info
-        ceplan_records = session.exec(
-            select(ProgramacionCEPLAN, Subproducto)
-            .join(Subproducto, ProgramacionCEPLAN.id_subproducto == Subproducto.id_subproducto)
-        ).all()
-        
-        # Format the data for output
-        ceplan_data = []
-        for ceplan_record, subproducto in ceplan_records:
-            ceplan_dict = {
-                "id_prog_ceplan": ceplan_record.id_prog_ceplan,
-                "id_subproducto": ceplan_record.id_subproducto,
-                "codigo_subproducto": subproducto.codigo_subproducto,
-                "nombre_subproducto": subproducto.nombre_subproducto,
-                "anio": ceplan_record.anio,
-                "prog_ene": ceplan_record.prog_ene,
-                "ejec_ene": ceplan_record.ejec_ene,
-                "prog_feb": ceplan_record.prog_feb,
-                "ejec_feb": ceplan_record.ejec_feb,
-                "prog_mar": ceplan_record.prog_mar,
-                "ejec_mar": ceplan_record.ejec_mar,
-                "prog_abr": ceplan_record.prog_abr,
-                "ejec_abr": ceplan_record.ejec_abr,
-                "prog_may": ceplan_record.prog_may,
-                "ejec_may": ceplan_record.ejec_may,
-                "prog_jun": ceplan_record.prog_jun,
-                "ejec_jun": ceplan_record.ejec_jun,
-                "prog_jul": ceplan_record.prog_jul,
-                "ejec_jul": ceplan_record.ejec_jul,
-                "prog_ago": ceplan_record.prog_ago,
-                "ejec_ago": ceplan_record.ejec_ago,
-                "prog_sep": ceplan_record.prog_sep,
-                "ejec_sep": ceplan_record.ejec_sep,
-                "prog_oct": ceplan_record.prog_oct,
-                "ejec_oct": ceplan_record.ejec_oct,
-                "prog_nov": ceplan_record.prog_nov,
-                "ejec_nov": ceplan_record.ejec_nov,
-                "prog_dic": ceplan_record.prog_dic,
-                "ejec_dic": ceplan_record.ejec_dic,
-                "fecha_creacion": ceplan_record.fecha_creacion.isoformat() if ceplan_record.fecha_creacion else None,
-                "fecha_actualizacion": ceplan_record.fecha_actualizacion.isoformat() if ceplan_record.fecha_actualizacion else None
-            }
-            ceplan_data.append(ceplan_dict)
-        
-        logger.info(f"Successfully retrieved {len(ceplan_data)} CEPLAN records for user {current_user.email}")
-        return {
-            "data": ceplan_data,
-            "total_count": len(ceplan_data),
-            "message": "Datos CEPLAN obtenidos exitosamente"
-        }
-    except Exception as e:
-        logger.error(f"Error retrieving CEPLAN data for user {current_user.email}: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener los datos CEPLAN: {str(e)}"
-        )
+    ceplan_records = session.exec(select(ProgramacionCEPLAN, Subproducto).join(Subproducto)).all()
+    return {"data": [c.model_dump() for c, s in ceplan_records], "message": "Datos CEPLAN"}
