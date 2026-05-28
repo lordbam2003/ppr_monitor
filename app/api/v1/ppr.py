@@ -27,16 +27,18 @@ router = APIRouter()
 @router.post("/sync-with-ceplan", response_class=JSONResponse)
 async def sync_with_ceplan(
     anio: int,
+    sync_metas: bool = True,
+    sync_avances: bool = False,
     current_user: User = Depends(require_responsable_ppr),
     session: Session = Depends(get_session)
 ):
     """
-    Sincronizar las metas programadas desde CEPLAN hacia PPR para un año específico.
+    Sincronizar las metas o avances desde CEPLAN hacia PPR para un año específico.
     """
     try:
-        logger.info(f"User {current_user.nombre} initiating meta synchronization CEPLAN -> PPR for year {anio}")
+        logger.info(f"User {current_user.nombre} initiating synchronization CEPLAN -> PPR for year {anio}. Metas: {sync_metas}, Avances: {sync_avances}")
         from app.services.ppr_service import sync_ppr_with_ceplan_data
-        result = sync_ppr_with_ceplan_data(year=anio, session=session)
+        result = sync_ppr_with_ceplan_data(year=anio, session=session, sync_metas=sync_metas, sync_avances=sync_avances)
         return {"data": result, "message": result["message"]}
     except Exception as e:
         logger.error(f"Error in CEPLAN sync: {str(e)}", exc_info=True)

@@ -188,12 +188,11 @@ def synchronize_ppr_with_cartera(year: int, session: Session) -> Dict:
         "message": f"Sincronización exitosa para {year}: {new_ppr_count} PPR(s) nuevos y {new_subproduct_count} subproducto(s) añadidos."
     }
 
-def sync_ppr_with_ceplan_data(year: int, session: Session) -> Dict:
+def sync_ppr_with_ceplan_data(year: int, session: Session, sync_metas: bool = True, sync_avances: bool = False) -> Dict:
     """
-    Sincroniza los valores PROGRAMADOS de CEPLAN hacia la tabla de PPR.
-    Copia los campos prog_ene...prog_dic y actualiza la meta_anual.
+    Sincroniza los valores PROGRAMADOS y/o EJECUTADOS de CEPLAN hacia la tabla de PPR.
     """
-    logger.info(f"Iniciando sincronización masiva de metas CEPLAN -> PPR para el año {year}")
+    logger.info(f"Iniciando sincronización masiva CEPLAN -> PPR para el año {year}. Metas: {sync_metas}, Avances: {sync_avances}")
     
     # 1. Obtener todas las programaciones de CEPLAN para el año
     ceplan_records = session.exec(
@@ -216,24 +215,39 @@ def sync_ppr_with_ceplan_data(year: int, session: Session) -> Dict:
         ).first()
         
         if ppr_prog:
-            # 3. Copiar valores de programación
+            # 3. Copiar valores de programación/ejecución
+            updated = False
             total_meta = 0.0
             for m in months:
-                val = getattr(cp, f"prog_{m}", 0.0) or 0.0
-                setattr(ppr_prog, f"prog_{m}", val)
-                total_meta += val
+                if sync_metas:
+                    val = getattr(cp, f"prog_{m}", 0.0) or 0.0
+                    setattr(ppr_prog, f"prog_{m}", val)
+                    total_meta += val
+                    updated = True
+                
+                if sync_avances:
+                    val_ejec = getattr(cp, f"ejec_{m}", 0.0) or 0.0
+                    setattr(ppr_prog, f"ejec_{m}", val_ejec)
+                    updated = True
             
-            ppr_prog.meta_anual = total_meta
-            ppr_prog.fecha_actualizacion = datetime.now()
-            session.add(ppr_prog)
-            updated_count += 1
+            if updated:
+                if sync_metas:
+                    ppr_prog.meta_anual = total_meta
+                ppr_prog.fecha_actualizacion = datetime.now()
+                session.add(ppr_prog)
+                updated_count += 1
             
     session.commit()
     logger.info(f"Sincronización CEPLAN -> PPR completada. {updated_count} subproductos actualizados.")
     
+    msg_parts = []
+    if sync_metas: msg_parts.append("metas")
+    if sync_avances: msg_parts.append("avances")
+    msg_type = " y ".join(msg_parts)
+    
     return {
         "count": updated_count,
-        "message": f"Se han sincronizado las metas de {updated_count} subproductos desde CEPLAN para el año {year}."
+        "message": f"Se han sincronizado {msg_type} de {updated_count} subproductos desde CEPLAN para el año {year}."
     }
 
 def update_subproduct_programming(subproducto_id: int, data: SubproductProgrammingUpdate, session: Session):

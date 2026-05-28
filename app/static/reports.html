@@ -3,143 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports - Sistema de Monitoreo PPR</title>
+    <title>Reportes y Análisis - Panel de Control</title>
     <!-- Bootstrap 5 CSS -->
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="/static/css/fontawesome.min.css">
     <!-- SweetAlert2 CSS -->
     <link rel="stylesheet" href="/static/css/sweetalert2.min.css">
-    <link rel="stylesheet" href="/static/css/style.css">
+    
+    <style>
+        :root {
+            --primary-med: #0d6efd;
+            --executive-blue: #1e3c72;
+            --executive-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .bg-executive { background: var(--executive-gradient); }
+        .btn-executive { background: var(--executive-blue); color: white; border: none; }
+        .btn-executive:hover { background: #2a5298; color: white; }
+
+        .navbar-brand { font-weight: 700; }
+
+        .btn-white {
+            background-color: white !important;
+            color: #1e3c72 !important;
+            border: 1px solid #dee2e6 !important;
+        }
+        .btn-white:hover {
+            background-color: #f8f9fa !important;
+            color: #0d6efd !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+        }
+
+        .card-management {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: #6c757d;
+            border-top: none;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .icon-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-chart-line me-2"></i>
-                Monitor PPR
+
+    <!-- Navbar Unificado -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-executive px-4 py-3 shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="fas fa-shield-halved me-2 fs-3 text-warning"></i>
+                <span>CONTROL GERENCIAL PPR</span>
             </a>
+            
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/ppr"><i class="fas fa-table me-1"></i> PPRs</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/transversal_data"><i class="fas fa-layer-group me-1"></i> Datos Transversales</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/users"><i class="fas fa-users me-1"></i> Usuarios</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#"><i class="fas fa-chart-bar me-1"></i> Reportes</a>
-                    </li>
+                   <li class="nav-item dropdown ms-lg-4">
+                      <a class="nav-link dropdown-toggle active fw-bold" href="#" id="navDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-bars me-2"></i>Navegación
+                      </a>
+                      <ul class="dropdown-menu shadow border-0">
+                        <li><a class="dropdown-item py-2" href="/dashboard_admin"><i class="fas fa-tachometer-alt me-2 text-primary"></i>Panel Principal</a></li>
+                        <li><a class="dropdown-item py-2" href="/ppr"><i class="fas fa-table me-2 text-primary"></i>Gestión de PPRs</a></li>
+                        <li><a class="dropdown-item py-2" href="/users"><i class="fas fa-users me-2 text-primary"></i>Gestión de Usuarios</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item py-2" href="/transversal_data"><i class="fas fa-layer-group me-2 text-info"></i>Carga de Datos</a></li>
+                        <li><a class="dropdown-item active py-2" href="/reports"><i class="fas fa-chart-bar me-2 text-info"></i>Reportes PDF/Excel</a></li>
+                      </ul>
+                   </li>
                 </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/login"><i class="fas fa-user-circle me-1"></i> Iniciar Sesión</a>
-                    </li>
-                </ul>
+
+                <div class="dropdown">
+                    <button class="btn btn-link text-white text-decoration-none dropdown-toggle p-0" type="button" data-bs-toggle="dropdown">
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=ffc107&color=fff" class="rounded-circle me-2" width="32">
+                        <span id="userDisplayName">Usuario</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                        <li><a class="dropdown-item" href="#" id="logoutButton"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <h1><i class="fas fa-chart-bar me-2"></i>Reportes y Comparaciones</h1>
+    <div class="container-fluid py-4 px-lg-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-0 text-dark"><i class="fas fa-chart-bar me-2 text-primary"></i>Reportes y Análisis</h2>
+                <p class="text-muted small mb-0">Generación de informes ejecutivos y exportación de datos</p>
+            </div>
+        </div>
 
-        <div class="row mb-4">
+        <div class="row mb-4 g-4">
+            <!-- Acción 1 -->
             <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <i class="fas fa-file-upload" style="font-size: 2rem;"></i>
+                <div class="card card-management h-100 text-center p-4">
+                    <div class="card-body d-flex flex-column align-items-center">
+                        <div class="icon-box bg-primary text-white shadow-sm">
+                            <i class="fas fa-file-invoice"></i>
                         </div>
-                        <h5 class="card-title mt-3">Subir CEPLAN</h5>
-                        <p class="card-text">Cargar archivo CEPLAN para comparación</p>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadCeplanModal">Subir CEPLAN</button>
+                        <h5 class="fw-bold text-dark mt-2">Reporte de Avance</h5>
+                        <p class="text-muted small flex-grow-1">Genera un documento PDF detallado con el progreso mensual de los subproductos críticos.</p>
+                        <button class="btn btn-executive px-4 rounded-pill shadow-sm mt-3" onclick="generateMonthlyReport()">
+                            <i class="fas fa-file-pdf me-2"></i>Generar PDF
+                        </button>
                     </div>
                 </div>
             </div>
+            
+            <!-- Acción 2 -->
             <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <i class="fas fa-balance-scale" style="font-size: 2rem;"></i>
+                <div class="card card-management h-100 text-center p-4">
+                    <div class="card-body d-flex flex-column align-items-center">
+                        <div class="icon-box bg-success text-white shadow-sm">
+                            <i class="fas fa-scale-unbalanced"></i>
                         </div>
-                        <h5 class="card-title mt-3">Comparativo PPR-CEPLAN</h5>
-                        <p class="card-text">Diferencias entre PPR y CEPLAN</p>
-                        <button class="btn btn-success" onclick="generateComparisonReport()">Comparar</button>
+                        <h5 class="fw-bold text-dark mt-2">Comparativo Anual</h5>
+                        <p class="text-muted small flex-grow-1">Exporta un consolidado en formato Excel mostrando las brechas entre programación y ejecución.</p>
+                        <button class="btn btn-white px-4 rounded-pill shadow-sm mt-3" onclick="generateComparisonReport()">
+                            <i class="fas fa-file-excel me-2 text-success"></i>Exportar Excel
+                        </button>
                     </div>
                 </div>
             </div>
+
+            <!-- Acción 3 -->
             <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <i class="fas fa-download" style="font-size: 2rem;"></i>
+                <div class="card card-management h-100 text-center p-4">
+                    <div class="card-body d-flex flex-column align-items-center">
+                        <div class="icon-box bg-warning text-dark shadow-sm">
+                            <i class="fas fa-database"></i>
                         </div>
-                        <h5 class="card-title mt-3">Exportar Datos</h5>
-                        <p class="card-text">Exportar reportes en diferentes formatos</p>
-                        <button class="btn btn-info" onclick="exportReport()">Exportar</button>
+                        <h5 class="fw-bold text-dark mt-2">Extracción Raw</h5>
+                        <p class="text-muted small flex-grow-1">Descarga un volcado completo de la base de datos en formato CSV para análisis en herramientas de BI.</p>
+                        <button class="btn btn-outline-dark px-4 rounded-pill shadow-sm mt-3" onclick="exportReport()">
+                            <i class="fas fa-download me-2"></i>Descargar Data
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i> Últimos Reportes Generados</h5>
+        <div class="card card-management bg-white overflow-hidden mt-2">
+            <div class="card-header bg-white p-4 border-bottom-0">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-history me-2 text-muted"></i>Historial de Reportes Generados</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-hover mb-0 align-middle">
                         <thead>
                             <tr>
-                                <th>Tipo de Reporte</th>
-                                <th>Fecha</th>
-                                <th>Periodo</th>
-                                <th>Generado por</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
+                                <th class="ps-4">Tipo de Documento</th>
+                                <th>Fecha de Generación</th>
+                                <th>Periodo Analizado</th>
+                                <th>Solicitante</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-center pe-4">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="reportsTableBody">
                             <tr>
-                                <td>Comparativo PPR vs CEPLAN</td>
-                                <td>2023-10-01 10:30</td>
-                                <td>Ene-Sep 2023</td>
-                                <td>admin</td>
-                                <td><span class="badge bg-success">Completado</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary me-1" onclick="viewReport(1)">Ver</button>
-                                    <button class="btn btn-sm btn-info" onclick="downloadReport(1)">Descargar</button>
+                                <td class="ps-4 fw-bold text-dark"><i class="fas fa-file-pdf me-2 text-danger"></i>Consolidado Ejecutivo</td>
+                                <td class="text-muted small">Hoy, 10:30 AM</td>
+                                <td>Año Fiscal 2026</td>
+                                <td>Administrador</td>
+                                <td class="text-center"><span class="badge bg-success rounded-pill px-3">Disponible</span></td>
+                                <td class="text-center pe-4">
+                                    <button class="btn btn-sm btn-outline-primary border-0 me-1" title="Ver"><i class="fas fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-outline-success border-0" title="Descargar"><i class="fas fa-download"></i></button>
                                 </td>
                             </tr>
                             <tr>
-                                <td>Reporte Mensual Octubre</td>
-                                <td>2023-10-01 09:15</td>
-                                <td>Oct 2023</td>
-                                <td>juan.perez</td>
-                                <td><span class="badge bg-success">Completado</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary me-1" onclick="viewReport(2)">Ver</button>
-                                    <button class="btn btn-sm btn-info" onclick="downloadReport(2)">Descargar</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Diferencias Críticas</td>
-                                <td>2023-09-30 16:45</td>
-                                <td>Agosto 2023</td>
-                                <td>maria.gomez</td>
-                                <td><span class="badge bg-warning">Procesando</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary me-1" onclick="viewReport(3)">Ver</button>
-                                    <button class="btn btn-sm btn-info" onclick="downloadReport(3)">Descargar</button>
+                                <td class="ps-4 fw-bold text-dark"><i class="fas fa-file-excel me-2 text-success"></i>Diferencias PPR-CEPLAN</td>
+                                <td class="text-muted small">Ayer, 16:45 PM</td>
+                                <td>Q3 2026</td>
+                                <td>Jefe de Planificación</td>
+                                <td class="text-center"><span class="badge bg-warning rounded-pill px-3 text-dark">Procesando</span></td>
+                                <td class="text-center pe-4">
+                                    <button class="btn btn-sm btn-outline-secondary border-0 me-1" disabled><i class="fas fa-clock"></i></button>
                                 </td>
                             </tr>
                         </tbody>
@@ -147,392 +219,23 @@
                 </div>
             </div>
         </div>
-
-        <!-- CEPLAN Upload Modal -->
-        <div class="modal fade" id="uploadCeplanModal" tabindex="-1" aria-labelledby="uploadCeplanModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="uploadCeplanModalLabel">Subir Archivo CEPLAN</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="uploadCeplanForm">
-                            <div class="mb-3">
-                                <label for="ceplanFile" class="form-label">Seleccionar archivo CEPLAN</label>
-                                <input type="file" class="form-control" id="ceplanFile" accept=".xlsx,.xls" required>
-                                <div class="form-text">Formato permitido: Excel (.xlsx, .xls). Tamaño máximo: 100MB</div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="uploadCeplanBtn">Subir Archivo</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Report Detail Modal -->
-        <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="reportModalLabel">Detalle del Reporte</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div id="reportContent">
-                            <div class="alert alert-info">
-                                <h4>Visualización del Reporte</h4>
-                                <p>Este panel mostraría el contenido detallado del reporte seleccionado.</p>
-                                <p>En una implementación completa, aquí se mostrarían gráficos, tablas comparativas y análisis detallado.</p>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h5>Resumen Ejecutivo</h5>
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <div class="row text-center">
-                                                <div class="col-4">
-                                                    <div class="border p-3">
-                                                        <h3 class="text-primary">12</h3>
-                                                        <p class="text-muted">PPRs Monitoreados</p>
-                                                    </div>
-                                                </div>
-                                                <div class="col-4">
-                                                    <div class="border p-3">
-                                                        <h3 class="text-success">85%</h3>
-                                                        <p class="text-muted">Ejecución Promedio</p>
-                                                    </div>
-                                                </div>
-                                                <div class="col-4">
-                                                    <div class="border p-3">
-                                                        <h3 class="text-danger">3</h3>
-                                                        <p class="text-muted">Alertas Activas</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5>Distribución por Estado</h5>
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <canvas id="statusChart" height="200"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <h5 class="mt-4">Diferencias Críticas</h5>
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Código Subproducto</th>
-                                            <th>Nombre Subproducto</th>
-                                            <th>Diferencia</th>
-                                            <th>Mes</th>
-                                            <th>Tipo</th>
-                                            <th>Estado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>0087901</td>
-                                            <td>MONITOREO DEL PROGRAMA...</td>
-                                            <td class="text-danger">-25.4%</td>
-                                            <td>Septiembre</td>
-                                            <td>Programación</td>
-                                            <td><span class="badge bg-danger">Alta</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>0087902</td>
-                                            <td>EJECUCIÓN DE ACCIONES...</td>
-                                            <td class="text-danger">-18.2%</td>
-                                            <td>Septiembre</td>
-                                            <td>Ejecución</td>
-                                            <td><span class="badge bg-warning">Media</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        <button type="button" class="btn btn-success" onclick="exportReport()">Exportar PDF</button>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <footer class="bg-dark text-light mt-5 py-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Sistema de Monitoreo PPR</h5>
-                    <p>Plataforma para el seguimiento de Programas Presupuestales (PPR) y CEPLAN</p>
-                </div>
-                <div class="col-md-6">
-                    <h5>Contacto</h5>
-                    <ul class="list-unstyled">
-                        <li><i class="fas fa-envelope me-2"></i> soporte@monitorppr.com</li>
-                        <li><i class="fas fa-phone me-2"></i> +57 123 456 7890</li>
-                    </ul>
-                </div>
-            </div>
-            <hr>
-            <div class="text-center">
-                <small>&copy; 2023 Sistema de Monitoreo PPR. Todos los derechos reservados.</small>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Bootstrap JS Bundle with Popper -->
+    <!-- Scripts -->
     <script src="/static/js/bootstrap.bundle.min.js"></script>
-    <!-- SweetAlert2 -->
     <script src="/static/js/sweetalert2.min.js"></script>
     <script src="/static/js/main.js"></script>
+    <script src="/static/js/common.js"></script>
     <script>
-        // Reports functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize authentication - redirects to login if not authenticated
+        document.addEventListener('DOMContentLoaded', async function() {
             initializeAuth();
-            
-            // Initialize charts if Chart.js is available
-            initCharts();
-        });
+            const user = await getCurrentUser();
+            if(user) document.getElementById('userDisplayName').textContent = user.nombre;
 
-        function initCharts() {
-            // This would initialize actual charts if Chart.js was included
-            // For now, just a placeholder
-        }
-
-        function generateMonthlyReport() {
-            Swal.fire({
-                title: 'Generar Reporte Mensual',
-                html: `
-                    <div class="text-start">
-                        <p>Seleccione el mes y año para generar el reporte mensual:</p>
-                        <div class="mb-3">
-                            <label for="reportMonth" class="form-label">Mes</label>
-                            <select class="form-control" id="reportMonth">
-                                <option value="1">Enero</option>
-                                <option value="2">Febrero</option>
-                                <option value="3">Marzo</option>
-                                <option value="4">Abril</option>
-                                <option value="5">Mayo</option>
-                                <option value="6">Junio</option>
-                                <option value="7">Julio</option>
-                                <option value="8">Agosto</option>
-                                <option value="9">Septiembre</option>
-                                <option value="10" selected>Octubre</option>
-                                <option value="11">Noviembre</option>
-                                <option value="12">Diciembre</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="reportYear" class="form-label">Año</label>
-                            <input type="number" class="form-control" id="reportYear" value="2023">
-                        </div>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Generar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#0d6efd'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const month = document.getElementById('reportMonth').value;
-                    const year = document.getElementById('reportYear').value;
-                    // Simulate API call to generate report
-                    simulateApiCall(() => {
-                        showSuccess(`Reporte mensual generado para ${month}/${year}`);
-                    });
-                }
+            document.getElementById('logoutButton').addEventListener('click', (e) => {
+                e.preventDefault();
+                logout();
             });
-        }
-
-        function generateComparisonReport() {
-            Swal.fire({
-                title: 'Comparativo PPR vs CEPLAN',
-                html: `
-                    <div class="text-start">
-                        <p>Seleccione los PPR para comparar con CEPLAN:</p>
-                        <div class="mb-3">
-                            <label for="pprSelect" class="form-label">Seleccionar PPR</label>
-                            <select class="form-control" id="pprSelect">
-                                <option value="">Todos los PPR</option>
-                                <option value="001">001 - INFRAESTRUCTURA ESCOLAR</option>
-                                <option value="002" selected>002 - SALUD MATERNO NEONATAL</option>
-                                <option value="003">003 - SEGURIDAD ALIMENTARIA</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="periodSelect" class="form-label">Periodo</label>
-                            <select class="form-control" id="periodSelect">
-                                <option value="yearly">Anual</option>
-                                <option value="last_quarter">Último Trimestre</option>
-                                <option value="last_month" selected>Último Mes</option>
-                            </select>
-                        </div>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Comparar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#0d6efd'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Simulate API call to generate comparison report
-                    simulateApiCall(() => {
-                        showSuccess('Reporte comparativo generado exitosamente');
-                    });
-                }
-            });
-        }
-
-        function exportReport() {
-            Swal.fire({
-                title: 'Exportar Reporte',
-                text: 'Seleccione el formato para exportar el reporte',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'PDF',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#dc3545'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Simulate API call to export report
-                    simulateApiCall(() => {
-                        showSuccess('Reporte exportado exitosamente');
-                    });
-                }
-            });
-        }
-
-        function viewReport(reportId) {
-            // In real implementation, this would fetch report details from the backend
-            // For now, we'll just show a confirmation message via SweetAlert2
-            Swal.fire({
-                title: 'Visualizando Reporte',
-                text: `Cargando detalles del reporte ID: ${reportId}`,
-                icon: 'info',
-                confirmButtonText: 'Aceptar',
-                confirmButtonColor: '#0d6efd'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Show the report modal after confirmation
-                    const modal = new bootstrap.Modal(document.getElementById('reportModal'));
-                    modal.show();
-                }
-            });
-        }
-
-        function downloadReport(reportId) {
-            Swal.fire({
-                title: 'Confirmar Descarga',
-                text: `¿Desea descargar el reporte ID: ${reportId}?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, descargar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#28a745'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Simulate API call to download report
-                    simulateApiCall(() => {
-                        showSuccess('Descarga iniciada');
-                    });
-                }
-            });
-        }
-        
-        async function uploadCeplanFile() {
-            const fileInput = document.getElementById('ceplanFile');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                showError('Por favor seleccione un archivo');
-                return;
-            }
-
-            try {
-                showLoading('Subiendo y procesando archivo CEPLAN...');
-                const result = await callAPIWithFile('/upload/ceplan', file);
-                
-                if (result && result.preview_id) {
-                    showSuccess('Archivo CEPLAN subido y procesado exitosamente. Redirigiendo a la vista previa...');
-                    
-                    // Close the upload modal
-                    document.getElementById('uploadCeplanModal').querySelector('.btn-close').click();
-                    document.getElementById('uploadCeplanForm').reset();
-                    
-                    // Redirect to the preview page with the preview ID
-                    setTimeout(() => {
-                        window.location.href = `/preview?id=${result.preview_id}`;
-                    }, 1500);
-                } else {
-                    showSuccess('Archivo CEPLAN subido exitosamente');
-                    document.getElementById('uploadCeplanModal').querySelector('.btn-close').click();
-                    document.getElementById('uploadCeplanForm').reset();
-                }
-            } catch (error) {
-                console.error('Error uploading CEPLAN file:', error);
-                hideLoading();
-                // Error is already handled by callAPIWithFile function
-            }
-        }
-
-        function showLoading(text = 'Procesando...') {
-            Swal.fire({
-                title: text,
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                willOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-        }
-
-        function hideLoading() {
-            Swal.close();
-        }
-
-        // Helper function to simulate API call with loading indicator
-        function simulateApiCall(callback) {
-            // Show loading state
-            Swal.fire({
-                title: 'Procesando...',
-                text: 'Por favor espere mientras se procesa su solicitud',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                willOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            
-            // Simulate API delay
-            setTimeout(() => {
-                // Close the loading state and execute callback
-                Swal.close();
-                callback();
-            }, 1500);
-        }
-
-        // Event listeners for CEPLAN upload
-        document.addEventListener('DOMContentLoaded', function() {
-            const uploadBtn = document.getElementById('uploadCeplanBtn');
-            if (uploadBtn) {
-                uploadBtn.addEventListener('click', uploadCeplanFile);
-            }
         });
     </script>
 </body>

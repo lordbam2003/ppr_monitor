@@ -33,6 +33,8 @@ class AssignedPPRResponse(BaseModel):
 
 class DashboardMetricsResponse(BaseModel):
     avance_general: float
+    avance_mensual: float = 0.0
+    avance_anual: float = 0.0
     subproductos_criticos: int
     subproductos_ok: int
     subproductos_atencion: int
@@ -247,8 +249,12 @@ async def get_ppr_metrics(
 
     total_p, count_s, crit, ok, att = 0.0, 0, 0, 0, 0
     months_to_date = [month_name_map[m] for m in range(1, eff_month + 1)]
+    target_month_str = month_name_map[eff_month]
 
     all_months_short = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+    total_prog_mensual, total_ejec_mensual = 0.0, 0.0
+    total_prog_anual, total_ejec_anual = 0.0, 0.0
 
     for sub in subproductos:
         # Filtro visibilidad CEPLAN
@@ -259,6 +265,7 @@ async def get_ppr_metrics(
         
         prog = session.exec(select(ProgramacionPPR).where(ProgramacionPPR.id_subproducto == sub.id_subproducto, ProgramacionPPR.anio == eff_year)).first()
         if prog:
+            # Acumulado para estado y avance general
             p_acum = sum(getattr(prog, f"prog_{m}", 0) or 0 for m in months_to_date)
             e_acum = sum(getattr(prog, f"ejec_{m}", 0) or 0 for m in months_to_date)
             cump = (e_acum / p_acum * 100) if p_acum > 0 else 0
@@ -267,9 +274,29 @@ async def get_ppr_metrics(
             if cump < 70: crit += 1
             elif cump < 90: att += 1
             else: ok += 1
-        else: att += 1
 
-    return DashboardMetricsResponse(avance_general=round(total_p/count_s, 2) if count_s > 0 else 0, subproductos_criticos=crit, subproductos_ok=ok, subproductos_atencion=att)
+            # Mensual
+            total_prog_mensual += getattr(prog, f"prog_{target_month_str}", 0) or 0
+            total_ejec_mensual += getattr(prog, f"ejec_{target_month_str}", 0) or 0
+
+            # Anual
+            total_prog_anual += sum(getattr(prog, f"prog_{m}", 0) or 0 for m in all_months_short)
+            total_ejec_anual += sum(getattr(prog, f"ejec_{m}", 0) or 0 for m in all_months_short)
+        else: 
+            att += 1
+
+    avance_general = round(total_p/count_s, 2) if count_s > 0 else 0
+    avance_mensual = round((total_ejec_mensual / total_prog_mensual) * 100, 2) if total_prog_mensual > 0 else 0
+    avance_anual = round((total_ejec_anual / total_prog_anual) * 100, 2) if total_prog_anual > 0 else 0
+
+    return DashboardMetricsResponse(
+        avance_general=avance_general,
+        avance_mensual=avance_mensual,
+        avance_anual=avance_anual,
+        subproductos_criticos=crit, 
+        subproductos_ok=ok, 
+        subproductos_atencion=att
+    )
 
 @router.get("/ppr/{ppr_id}/subproductos", response_model=List[SubproductoResponse])
 async def get_ppr_subproductos(

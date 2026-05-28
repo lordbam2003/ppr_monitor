@@ -158,24 +158,39 @@
     <!-- Fila 2: Métricas Detalladas del PPR Seleccionado -->
     <div id="pprDetailSection" style="display: none;">
       <div class="row mb-4">
-        <!-- Avance PPR -->
-        <div class="col-md-4 mb-3">
+        <!-- Avance Mensual -->
+        <div class="col-md-3 mb-3">
           <div class="card card-dashboard h-100 border-start border-primary border-4">
-            <div class="card-body text-center">
-              <h6 class="card-title text-muted mb-2 small fw-bold" id="avanceGeneralTitle">AVANCE GENERAL</h6>
-              <h2 class="mb-2 fw-bold" id="avanceGeneral">-</h2>
-              <div class="progress mb-2" style="height: 12px;">
-                <div class="progress-bar bg-primary" id="progressBarGeneral" role="progressbar" style="width: 0%"></div>
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+              <h6 class="card-title text-muted mb-2 small fw-bold" id="avanceMensualTitle">AVANCE MENSUAL</h6>
+              <h2 class="mb-2 fw-bold text-primary" id="avanceMensual">-</h2>
+              <div class="progress mb-2 mx-3" style="height: 8px;">
+                <div class="progress-bar bg-primary" id="progressBarMensual" role="progressbar" style="width: 0%"></div>
               </div>
+              <p class="mb-0 text-muted small" id="avanceMensualDesc">Mes seleccionado</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Avance Anual -->
+        <div class="col-md-3 mb-3">
+          <div class="card card-dashboard h-100 border-start border-info border-4">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+              <h6 class="card-title text-muted mb-2 small fw-bold" id="avanceAnualTitle">AVANCE ANUAL</h6>
+              <h2 class="mb-2 fw-bold text-info" id="avanceAnual">-</h2>
+              <div class="progress mb-2 mx-3" style="height: 8px;">
+                <div class="progress-bar bg-info" id="progressBarAnual" role="progressbar" style="width: 0%"></div>
+              </div>
+              <p class="mb-0 text-muted small">Meta Anual PPR</p>
             </div>
           </div>
         </div>
 
         <!-- Críticos PPR -->
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
           <div class="card card-dashboard h-100 border-start border-danger border-4">
-            <div class="card-body text-center">
-              <h6 class="card-title text-muted mb-2 small fw-bold" id="subproductosCriticosTitle">SUBPRODUCTOS CRÍTICOS</h6>
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+              <h6 class="card-title text-muted mb-2 small fw-bold" id="subproductosCriticosTitle">SUBPRODUCTOS EN RIESGO</h6>
               <h2 class="text-danger mb-2 fw-bold" id="subproductosCriticos">-</h2>
               <p class="mb-0 text-muted small">Requieren atención inmediata</p>
             </div>
@@ -183,10 +198,10 @@
         </div>
 
         <!-- OK PPR -->
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
           <div class="card card-dashboard h-100 border-start border-success border-4">
-            <div class="card-body text-center">
-              <h6 class="card-title text-muted mb-2 small fw-bold" id="subproductosOkTitle">SUBPRODUCTOS OK</h6>
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+              <h6 class="card-title text-muted mb-2 small fw-bold" id="subproductosOkTitle">ESTADO CORRECTO</h6>
               <h2 class="text-success mb-2 fw-bold" id="subproductosOk">-</h2>
               <p class="mb-0 text-muted small">Cumplidos o en buen estado</p>
             </div>
@@ -324,7 +339,12 @@
       });
       
       document.getElementById('periodoSelect').addEventListener('change', () => {
-        if(selectedPprId) loadSubproducts(selectedPprId, document.getElementById('periodoSelect').value);
+        if(selectedPprId) {
+            const activeRow = document.querySelector('.table-active');
+            const pprName = activeRow ? activeRow.dataset.pprName : '';
+            loadMetrics(selectedPprId, pprName);
+            loadSubproducts(selectedPprId, document.getElementById('periodoSelect').value);
+        }
       });
 
       document.getElementById('subproductFilter').addEventListener('input', filterSubproductsTable);
@@ -436,15 +456,22 @@
 
     async function loadMetrics(pprId, pprName) {
       const year = document.getElementById('globalYearSelect').value;
-      const period = document.getElementById('periodoSelect').value;
+      const periodSelect = document.getElementById('periodoSelect');
+      const period = periodSelect.value;
+      const monthName = periodSelect.options[periodSelect.selectedIndex].text;
       const parsed = parsePeriod(period);
       
       try {
         const response = await callAPI(`/dashboard/ppr/${pprId}/metrics?year=${year}&month=${parsed.month}`, 'GET');
         
-        document.getElementById('avanceGeneralTitle').textContent = `AVANCE ${pprName.toUpperCase()} (${year})`;
-        document.getElementById('avanceGeneral').textContent = response.avance_general + '%';
-        document.getElementById('progressBarGeneral').style.width = response.avance_general + '%';
+        document.getElementById('avanceMensualTitle').textContent = `AVANCE MENSUAL (${monthName})`;
+        document.getElementById('avanceMensual').textContent = response.avance_mensual + '%';
+        document.getElementById('progressBarMensual').style.width = response.avance_mensual + '%';
+
+        document.getElementById('avanceAnualTitle').textContent = `AVANCE ANUAL (${year})`;
+        document.getElementById('avanceAnual').textContent = response.avance_anual + '%';
+        document.getElementById('progressBarAnual').style.width = response.avance_anual + '%';
+
         document.getElementById('subproductosCriticos').textContent = response.subproductos_criticos;
         document.getElementById('subproductosOk').textContent = response.subproductos_ok;
       } catch (error) { console.error(error); }
